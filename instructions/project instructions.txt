@@ -1,0 +1,297 @@
+Project Title
+
+Secure Role-Based File Sharing System
+
+Domain
+
+Cybersecurity
+
+Abstract
+
+In many organizations, files are shared using insecure methods such as email, messaging applications, or open cloud links, which lack proper access control, encryption, and monitoring. This leads to unauthorized access, data leakage, and absence of accountability.
+This project proposes a Secure Role-Based File Sharing System that integrates strong authentication, role-based authorization, encrypted file storage, and audit logging. The system ensures that only authorized users can access specific files based on their roles, while all file activities are logged for security monitoring and accountability.
+
+Problem Statement
+
+Existing file sharing systems do not provide fine-grained role-based access control, secure encrypted storage, and comprehensive audit logging, resulting in unauthorized access, data breaches, and lack of traceability.
+
+Objectives
+
+To implement secure user authentication using JWT
+
+To enforce role-based access control
+
+To securely store files using encryption
+
+To prevent unauthorized file access
+
+To maintain detailed audit logs
+
+To ensure data confidentiality and accountability
+
+Existing System Drawbacks
+
+Files shared through email, WhatsApp, or open links
+
+No role-based access restrictions
+
+Files stored without encryption
+
+No tracking of file access
+
+No accountability for misuse
+
+Proposed System
+
+The proposed system provides:
+
+Secure JWT-based authentication
+
+Role-based authorization (RBAC)
+
+Encrypted file storage using AES
+
+Controlled file access
+
+Complete audit logging
+
+System Roles
+Admin
+
+Manage users and roles
+
+View all files
+
+View audit logs
+
+Revoke access
+
+User
+
+Upload files
+
+Download permitted files
+
+View own file activity
+
+Auditor
+
+View access logs only
+
+No upload or download permissions
+
+Key Features
+
+Secure login and authentication
+
+Role-based access control
+
+Encrypted file upload and storage
+
+Secure file download
+
+Audit logging of all actions
+
+Admin-controlled access management
+
+Functional Requirements
+
+User registration and login
+
+JWT token generation and validation
+
+Role-based API access
+
+Secure file upload
+
+Secure file download
+
+File encryption and decryption
+
+Audit log generation
+
+Admin dashboard
+
+Non-Functional Requirements
+
+Security
+
+Reliability
+
+Scalability
+
+Maintainability
+
+Performance
+
+Workflow (Step-by-Step)
+
+User logs in with credentials
+
+System authenticates user
+
+JWT token is generated
+
+User sends requests with token
+
+Role validation is performed
+
+File is encrypted before storage
+
+File is decrypted only after authorization
+
+Every action is logged
+
+Response is sent to user
+
+System Architecture Explanation
+
+Client sends request to Spring Boot server
+
+Authentication module validates credentials
+
+Authorization module checks user role
+
+Encryption module secures files
+
+File storage module saves encrypted files
+
+Audit module logs all activities
+
+Database stores user, file, and log data
+
+Modules Description
+
+Authentication Module – Handles login and JWT
+
+Authorization Module – Enforces RBAC
+
+File Management Module – Upload & download handling
+
+Encryption Module – AES encryption & decryption
+
+Audit Logging Module – Tracks all actions
+
+Admin Module – User and access management
+
+Database Design
+User Table
+
+user_id
+
+username
+
+password_hash
+
+role
+
+File Table
+
+file_id
+
+file_name
+
+encrypted_file_path
+
+owner_id
+
+upload_timestamp
+
+Audit Log Table
+
+log_id
+
+user_id
+
+file_id
+
+action
+
+timestamp
+
+Technology Stack
+Backend
+
+Java
+
+Spring Boot
+
+Spring Security
+
+JWT
+
+Frontend
+
+HTML
+
+CSS
+
+Tailwind CSS 
+
+Database
+
+MySQL
+
+Security
+
+AES (File Encryption)
+
+bcrypt (Password Hashing)
+
+Security Mechanisms Implemented
+
+JWT Authentication
+
+Role-Based Access Control
+
+Encrypted File Storage
+
+Secure Password Hashing
+
+Token Expiry and Validation
+
+Audit Logging
+
+Advantages
+
+Prevents unauthorized access
+
+Ensures data confidentiality
+
+Maintains accountability
+
+Easy to extend
+
+Suitable for small organizations
+
+Limitations
+
+Does not fully prevent insider threats
+
+Depends on secure key management
+
+Limited to local deployment
+
+Future Improvements
+
+Multi-factor authentication
+
+Cloud deployment
+
+Intrusion detection alerts
+
+File integrity verification
+
+IP-based access control
+
+Expected Outcome
+
+Secure file sharing system
+
+Controlled access based on roles
+
+Encrypted data storage
+
+Complete audit trail
+
+Reduced risk of data breaches

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Secure File Sharing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="css/fallback.css">
+    <link rel="stylesheet" href="css/ui.css">
+    <link rel="stylesheet" href="css/fallback.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-app bg-grid text-slate-100" onload="checkAuth(); loadFiles()">
+    <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="h-16 flex items-center justify-between">
+                <a href="index.html" class="flex items-center gap-3">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-emerald-400 text-slate-950 font-black">S</span>
+                    <span class="font-semibold tracking-tight">SecureShare</span>
+                </a>
+
+                <div class="flex items-center gap-3">
+                    <div class="hidden sm:block text-right">
+                        <div class="text-sm text-slate-200" id="usernameDisplay"></div>
+                        <div class="text-xs text-slate-400" id="roleDisplay"></div>
+                    </div>
+                    <a href="admin.html" id="adminLink" class="hidden btn-ghost rounded-xl px-3 py-2 text-sm">Audit Logs</a>
+                    <button onclick="logout()" class="btn-ghost rounded-xl px-3 py-2 text-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-10 page-enter">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight">Your Secure Vault</h1>
+                <p class="mt-2 text-slate-300">Upload encrypted files, download safely, and keep everything auditable.</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="#files" class="btn-ghost rounded-xl px-4 py-2 text-sm">View files</a>
+                <a href="#upload" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold">Upload</a>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <section id="upload" class="mt-8 rounded-3xl card-glass p-6 sm:p-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold">Upload a file</h2>
+                    <p class="mt-1 text-sm text-slate-300">Drag &amp; drop, or choose a file. Upload progress appears below.</p>
+                </div>
+                <div class="text-xs text-slate-400">Protected by JWT + role checks</div>
+            </div>
+
+            <div id="dropzone" class="dropzone mt-5 rounded-2xl p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <div class="font-medium text-slate-200">Drop file here</div>
+                        <div class="text-sm text-slate-400">or select using the button</div>
+                    </div>
+                    <label class="btn-ghost rounded-xl px-4 py-2 text-sm cursor-pointer inline-flex items-center justify-center">
+                        Choose file
+                        <input type="file" id="fileInput" class="hidden" />
+                    </label>
+                </div>
+
+                <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <button id="uploadBtn" onclick="uploadFile()" class="btn-primary rounded-xl px-5 py-3 font-semibold">
+                        Upload now
+                    </button>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                            <span>Progress</span>
+                            <span id="uploadPct">0%</span>
+                        </div>
+                        <div class="progress"><div id="uploadBar"></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- File List -->
+        <section id="files" class="mt-8 rounded-3xl card-glass p-6 sm:p-8">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold">My Files</h2>
+                    <p class="mt-1 text-sm text-slate-300">Download files you have permission to access.</p>
+                </div>
+                <button onclick="loadFiles()" class="btn-ghost rounded-xl px-4 py-2 text-sm">Refresh</button>
+            </div>
+
+            <div class="mt-5 overflow-x-auto rounded-2xl border border-white/10">
+                <table class="w-full text-sm">
+                    <thead class="bg-white/5">
+                        <tr class="text-left text-slate-300">
+                            <th class="px-4 py-3">File Name</th>
+                            <th class="px-4 py-3">Owner</th>
+                            <th class="px-4 py-3">Uploaded</th>
+                            <th class="px-4 py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileList">
+                        <!-- Files inserted by app.js -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Drag & drop upload UX.
+        (function () {
+            const dz = document.getElementById('dropzone');
+            const input = document.getElementById('fileInput');
+            if (!dz || !input) return;
+
+            const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+            ['dragenter', 'dragover'].forEach(evt => dz.addEventListener(evt, (e) => {
+                stop(e);
+                dz.classList.add('is-dragover');
+            }));
+
+            ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, (e) => {
+                stop(e);
+                dz.classList.remove('is-dragover');
+            }));
+
+            dz.addEventListener('drop', (e) => {
+                const file = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null;
+                if (!file) return;
+                input.files = e.dataTransfer.files;
+                window.UI?.toast({ type: 'ok', title: 'File selected', message: file.name, timeout: 2200 });
+            });
+        })();
+    </script>
+</body>
+
+</html>

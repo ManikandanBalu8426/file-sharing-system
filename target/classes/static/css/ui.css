@@ -1,0 +1,196 @@
+/*
+  Shared premium UI layer for all pages (Tailwind-friendly)
+  - Subtle, intentional motion
+  - Accessible focus states
+  - Works even if Tailwind CDN is blocked (paired with fallback.css)
+*/
+
+:root{
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --ease-in-out: cubic-bezier(.65,0,.35,1);
+  --ease-spring: cubic-bezier(.2,1.2,.2,1);
+
+  --glass: rgba(255,255,255,.06);
+  --glass-2: rgba(255,255,255,.10);
+  --stroke: rgba(255,255,255,.12);
+  --stroke-2: rgba(255,255,255,.18);
+}
+
+/* Background system */
+.bg-app{
+  background: radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,.18), transparent 60%),
+              radial-gradient(900px 600px at 85% 35%, rgba(52,211,153,.14), transparent 55%),
+              radial-gradient(700px 600px at 30% 95%, rgba(99,102,241,.10), transparent 55%),
+              linear-gradient(180deg, #050816, #070a18 40%, #060814);
+  min-height: 100vh;
+}
+
+.bg-grid{
+  position: relative;
+  isolation: isolate;
+}
+.bg-grid::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:.18;
+  z-index:-1;
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(700px 450px at 50% 30%, rgba(0,0,0,1), transparent 70%);
+}
+
+/* Premium glass card */
+.card-glass{
+  background: linear-gradient(180deg, var(--glass-2), var(--glass));
+  border: 1px solid var(--stroke);
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.03) inset;
+  backdrop-filter: blur(14px);
+}
+
+/* Micro-interactions */
+.lift{
+  transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out), border-color .35s var(--ease-out);
+}
+.lift:hover{
+  transform: translateY(-6px);
+  box-shadow:
+    0 28px 80px rgba(0,0,0,.42),
+    0 0 0 1px rgba(59,130,246,.18) inset;
+  border-color: var(--stroke-2);
+}
+
+.btn-primary{
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #3b82f6, #34d399);
+  color: #020617;
+  border: 1px solid rgba(255,255,255,.12);
+}
+.btn-primary::after{
+  content:"";
+  position:absolute;
+  inset:-40% -35%;
+  transform: translateX(-60%) rotate(12deg);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.22) 50%, transparent 100%);
+  transition: transform .75s var(--ease-out);
+}
+.btn-primary:hover::after{transform: translateX(60%) rotate(12deg);}
+
+.btn-ghost{
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+}
+.btn-ghost:hover{border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.06);}
+
+/* Form inputs */
+.input{
+  background: rgba(2,6,23,.35);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(226,232,240,1);
+  transition: border-color .25s var(--ease-out), box-shadow .25s var(--ease-out), transform .25s var(--ease-out);
+}
+.input::placeholder{color: rgba(148,163,184,.9);}
+.input:focus{
+  border-color: rgba(59,130,246,.6);
+  box-shadow: 0 0 0 4px rgba(59,130,246,.18);
+}
+
+/* Page entrance */
+html.js .page-enter{
+  opacity: 0;
+  transform: translateY(10px);
+}
+html.js.is-ready .page-enter{
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .7s var(--ease-out), transform .7s var(--ease-out);
+}
+
+/* Toasts */
+.toast-host{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+  display: grid;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+}
+.toast{
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(2,6,23,.72);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 55px rgba(0,0,0,.45);
+  color: rgba(226,232,240,1);
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+.toast .title{font-weight: 650; line-height: 1.1;}
+.toast .msg{font-size: .9rem; color: rgba(203,213,225,1); margin-top: 2px;}
+.toast .x{
+  border: 0;
+  background: transparent;
+  color: rgba(226,232,240,.9);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.toast .x:hover{background: rgba(255,255,255,.08);}
+.toast.ok{border-color: rgba(52,211,153,.22);}
+.toast.warn{border-color: rgba(251,191,36,.22);}
+.toast.err{border-color: rgba(248,113,113,.22);}
+
+html.js .toast{
+  opacity: 0;
+  transform: translateY(10px);
+}
+html.js .toast.is-in{
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .35s var(--ease-out), transform .35s var(--ease-out);
+}
+html.js .toast.is-out{
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .25s var(--ease-out), transform .25s var(--ease-out);
+}
+
+/* Upload dropzone */
+.dropzone{
+  border: 1px dashed rgba(255,255,255,.20);
+  background: rgba(255,255,255,.04);
+  transition: border-color .25s var(--ease-out), background .25s var(--ease-out), transform .25s var(--ease-out);
+}
+.dropzone.is-dragover{
+  border-color: rgba(59,130,246,.65);
+  background: rgba(59,130,246,.10);
+  transform: translateY(-2px);
+}
+
+/* Progress bar */
+.progress{
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  overflow: hidden;
+}
+.progress > div{
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #3b82f6, #34d399);
+  transition: width .2s var(--ease-out);
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important;}
+}
