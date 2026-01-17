@@ -1,5 +1,122 @@
 const API_URL = 'http://localhost:8080/api';
 
+let signupOtpRequestId = null;
+let signinOtpRequestId = null;
+
+function setAuthInputsDisabled(disabled) {
+    const ids = ['username', 'email', 'password', 'role'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !!disabled;
+    });
+}
+
+function showOtpSection() {
+    const section = document.getElementById('otpSection');
+    if (section) section.classList.remove('hidden');
+    const otp = document.getElementById('otp');
+    if (otp) otp.focus();
+}
+
+function resetOtpState() {
+    signupOtpRequestId = null;
+    signinOtpRequestId = null;
+    const otp = document.getElementById('otp');
+    if (otp) otp.value = '';
+    const section = document.getElementById('otpSection');
+    if (section) section.classList.add('hidden');
+    setAuthInputsDisabled(false);
+    const registerBtn = document.getElementById('registerBtn');
+    if (registerBtn) registerBtn.textContent = 'Create Account';
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) loginBtn.textContent = 'Sign In';
+}
+
+async function resendOtp() {
+    const messageEl = document.getElementById('message');
+    if (messageEl) messageEl.innerText = '';
+
+    const onRegisterPage = !!document.getElementById('registerBtn');
+    const onLoginPage = !!document.getElementById('loginBtn');
+
+    try {
+        if (onRegisterPage) {
+            const username = document.getElementById('username')?.value || '';
+            const email = document.getElementById('email')?.value || '';
+            const password = document.getElementById('password')?.value || '';
+            const role = document.getElementById('role')?.value || 'user';
+
+            const response = await fetch(`${API_URL}/auth/signup/request-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password, role })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                signupOtpRequestId = data.otpRequestId;
+                uiToast('ok', 'OTP resent', `Check ${email} for the code`);
+                showOtpSection();
+            } else {
+                if (messageEl) messageEl.innerText = data.message || 'Could not resend OTP';
+                uiToast('err', 'Resend failed', data.message || 'Try again');
+            }
+            return;
+        }
+
+        if (onLoginPage) {
+            const username = document.getElementById('username')?.value || '';
+            const password = document.getElementById('password')?.value || '';
+
+            const response = await fetch(`${API_URL}/auth/signin/request-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                signinOtpRequestId = data.otpRequestId;
+                uiToast('ok', 'OTP resent', 'Check your email for the code');
+                showOtpSection();
+            } else {
+                if (messageEl) messageEl.innerText = data.message || 'Could not resend OTP';
+                uiToast('err', 'Resend failed', data.message || 'Try again');
+            }
+        }
+    } catch (e) {
+        if (messageEl) messageEl.innerText = 'Error: ' + e.message;
+        uiToast('err', 'Network error', e.message);
+    }
+}
+
+function wireOtpButtons() {
+    const resendBtn = document.getElementById('resendOtpBtn');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', async () => {
+            const btn = resendBtn;
+            try {
+                window.UI?.setButtonLoading(btn, true, 'Sending…');
+                await resendOtp();
+            } finally {
+                window.UI?.setButtonLoading(btn, false);
+            }
+        });
+    }
+
+    const changeBtn = document.getElementById('changeDetailsBtn');
+    if (changeBtn) {
+        changeBtn.addEventListener('click', () => {
+            resetOtpState();
+        });
+    }
+}
+
+// Auto-wire for pages that include OTP controls.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireOtpButtons);
+} else {
+    wireOtpButtons();
+}
+
 function uiToast(type, title, message) {
     if (window.UI && typeof window.UI.toast === 'function') {
         window.UI.toast({ type, title, message });
@@ -15,12 +132,39 @@ async function handleLogin(event) {
     event.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+    const otpEl = document.getElementById('otp');
+    const messageEl = document.getElementById('message');
+    if (messageEl) messageEl.innerText = '';
 
     try {
-        const response = await fetch(`${API_URL}/auth/signin`, {
+        if (!signinOtpRequestId) {
+            const response = await fetch(`${API_URL}/auth/signin/request-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                signinOtpRequestId = data.otpRequestId;
+                uiToast('ok', 'OTP sent', 'Check your email for the code');
+                showOtpSection();
+                setAuthInputsDisabled(true);
+                const btn = document.getElementById('loginBtn');
+                if (btn) btn.textContent = 'Verify OTP';
+            } else {
+                const msg = 'Login failed: ' + (data.message || 'Unknown error');
+                if (messageEl) messageEl.innerText = msg;
+                uiToast('err', 'Login failed', data.message || 'Check your credentials');
+            }
+            return;
+        }
+
+        const otp = otpEl ? otpEl.value : '';
+        const response = await fetch(`${API_URL}/auth/signin/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ otpRequestId: signinOtpRequestId, otp })
         });
         const data = await response.json();
 
@@ -28,18 +172,20 @@ async function handleLogin(event) {
             localStorage.setItem('user', JSON.stringify(data));
             uiToast('ok', 'Signed in', 'Welcome back. Redirecting…');
             if (data.role === 'ROLE_ADMIN' || data.role === 'ROLE_AUDITOR') {
-                // Option to go to admin dashboard
                 window.location.href = 'admin.html';
             } else {
                 window.location.href = 'dashboard.html';
             }
         } else {
-            const msg = 'Login failed: ' + (data.message || 'Unknown error');
-            document.getElementById('message').innerText = msg;
-            uiToast('err', 'Login failed', data.message || 'Check your credentials');
+            const msg = 'OTP verification failed: ' + (data.message || 'Unknown error');
+            if (messageEl) messageEl.innerText = msg;
+            uiToast('err', 'OTP failed', data.message || 'Try again');
+            if ((data.message || '').toLowerCase().includes('expired') || (data.message || '').toLowerCase().includes('not found')) {
+                resetOtpState();
+            }
         }
     } catch (error) {
-        document.getElementById('message').innerText = 'Error: ' + error.message;
+        if (messageEl) messageEl.innerText = 'Error: ' + error.message;
         uiToast('err', 'Network error', error.message);
     }
 }
@@ -47,26 +193,57 @@ async function handleLogin(event) {
 async function handleRegister(event) {
     event.preventDefault();
     const username = document.getElementById('username').value;
+    const emailEl = document.getElementById('email');
+    const email = emailEl ? emailEl.value : '';
     const password = document.getElementById('password').value;
     const role = document.getElementById('role').value;
+    const otpEl = document.getElementById('otp');
+    const messageEl = document.getElementById('message');
+    if (messageEl) messageEl.innerText = '';
 
     try {
-        const response = await fetch(`${API_URL}/auth/signup`, {
+        if (!signupOtpRequestId) {
+            const response = await fetch(`${API_URL}/auth/signup/request-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password, role })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                signupOtpRequestId = data.otpRequestId;
+                uiToast('ok', 'OTP sent', `Check ${email} for the code`);
+                showOtpSection();
+                setAuthInputsDisabled(true);
+                const btn = document.getElementById('registerBtn');
+                if (btn) btn.textContent = 'Verify OTP';
+            } else {
+                if (messageEl) messageEl.innerText = 'Registration failed: ' + (data.message || 'Unknown error');
+                uiToast('err', 'Registration failed', data.message || 'Try again');
+            }
+            return;
+        }
+
+        const otp = otpEl ? otpEl.value : '';
+        const response = await fetch(`${API_URL}/auth/signup/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, role })
+            body: JSON.stringify({ otpRequestId: signupOtpRequestId, otp })
         });
         const data = await response.json();
 
         if (response.ok) {
-            uiToast('ok', 'Account created', 'Please sign in to continue');
+            uiToast('ok', 'Account verified', 'Please sign in to continue');
             window.location.href = 'login.html';
         } else {
-            document.getElementById('message').innerText = 'Registration failed: ' + data.message;
-            uiToast('err', 'Registration failed', data.message || 'Try a different username');
+            if (messageEl) messageEl.innerText = 'OTP verification failed: ' + (data.message || 'Unknown error');
+            uiToast('err', 'OTP failed', data.message || 'Try again');
+            if ((data.message || '').toLowerCase().includes('expired') || (data.message || '').toLowerCase().includes('not found')) {
+                resetOtpState();
+            }
         }
     } catch (error) {
-        document.getElementById('message').innerText = 'Error: ' + error.message;
+        if (messageEl) messageEl.innerText = 'Error: ' + error.message;
         uiToast('err', 'Network error', error.message);
     }
 }
@@ -102,7 +279,7 @@ async function loadFiles() {
             <td class="px-4 py-3 text-slate-300">${file.owner.username}</td>
             <td class="px-4 py-3 text-slate-400 text-sm">${file.uploadTimestamp}</td>
             <td class="px-4 py-3">
-                <button onclick="downloadFile(${file.id})" class="btn-ghost rounded-xl px-3 py-2 text-sm">Download</button>
+                <button onclick="downloadFile(${file.id})" class="btn-primary rounded-xl px-3 py-2 text-sm font-semibold">Download</button>
             </td>
         `;
         list.appendChild(row);

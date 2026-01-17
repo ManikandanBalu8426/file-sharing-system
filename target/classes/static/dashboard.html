@@ -8,8 +8,6 @@
 
     <link rel="stylesheet" href="css/fallback.css">
     <link rel="stylesheet" href="css/ui.css">
-    <link rel="stylesheet" href="css/fallback.css">
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-app bg-grid text-slate-100" onload="checkAuth(); loadFiles()">
@@ -26,8 +24,8 @@
                         <div class="text-sm text-slate-200" id="usernameDisplay"></div>
                         <div class="text-xs text-slate-400" id="roleDisplay"></div>
                     </div>
-                    <a href="admin.html" id="adminLink" class="hidden btn-ghost rounded-xl px-3 py-2 text-sm">Audit Logs</a>
-                    <button onclick="logout()" class="btn-ghost rounded-xl px-3 py-2 text-sm">Logout</button>
+                    <a href="admin.html" id="adminLink" class="hidden btn-primary rounded-xl px-3 py-2 text-sm font-semibold">Audit Logs</a>
+                    <button onclick="logout()" class="btn-primary rounded-xl px-3 py-2 text-sm font-semibold">Logout</button>
                 </div>
             </div>
         </div>
@@ -89,7 +87,7 @@
                     <h2 class="text-xl font-semibold">My Files</h2>
                     <p class="mt-1 text-sm text-slate-300">Download files you have permission to access.</p>
                 </div>
-                <button onclick="loadFiles()" class="btn-ghost rounded-xl px-4 py-2 text-sm">Refresh</button>
+                <button onclick="loadFiles()" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold">Refresh</button>
             </div>
 
             <div class="mt-5 overflow-x-auto rounded-2xl border border-white/10">

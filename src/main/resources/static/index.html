@@ -8,28 +8,12 @@
 
     <!-- Local fallback (so the page is still styled if Tailwind CDN is blocked/offline) -->
     <link rel="stylesheet" href="css/fallback.css">
+    <link rel="stylesheet" href="css/ui.css">
     <link rel="stylesheet" href="css/landing.css">
 
-    <!-- Tailwind CDN (preferred). If blocked, fallback.css keeps things readable. -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        // Tailwind theme config (tiny, keeps branding consistent).
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            500: '#3b82f6',
-                            600: '#2563eb'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- No external CSS/JS dependencies: styling is handled by local CSS files above. -->
 </head>
-<body class="bg-slate-950 text-slate-100 selection:bg-blue-500/30 selection:text-white">
+<body class="bg-app bg-grid text-slate-100 selection:bg-blue-500/30 selection:text-white">
     <a class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 bg-white text-slate-900 px-4 py-2 rounded" href="#main">Skip to content</a>
 
     <!-- Top nav -->
@@ -50,7 +34,7 @@
 
                 <div class="flex items-center gap-2">
                     <a href="login.html" class="hidden sm:inline-flex px-4 py-2 rounded-xl border border-white/15 hover:border-white/25 text-sm">Sign in</a>
-                    <a href="register.html" class="inline-flex px-4 py-2 rounded-xl bg-white text-slate-950 text-sm font-semibold hover:bg-slate-100 btn-sheen">Create account</a>
+                    <a href="register.html" class="inline-flex px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-emerald-400 text-slate-950 text-sm font-semibold btn-sheen">Create account</a>
                 </div>
             </div>
         </div>
@@ -197,7 +181,7 @@
                 </div>
 
                 <div class="mt-10" data-reveal>
-                    <a href="register.html" class="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold btn-sheen">Start with a secure account</a>
+                    <a href="register.html" class="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-emerald-400 text-slate-950 font-semibold btn-sheen">Start with a secure account</a>
                 </div>
             </div>
         </section>

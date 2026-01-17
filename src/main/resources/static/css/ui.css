@@ -19,6 +19,7 @@
 /* Background system */
 .bg-app{
   background: radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,.18), transparent 60%),
+              radial-gradient(1000px 650px at 55% 18%, rgba(20,184,166,.12), transparent 58%),
               radial-gradient(900px 600px at 85% 35%, rgba(52,211,153,.14), transparent 55%),
               radial-gradient(700px 600px at 30% 95%, rgba(99,102,241,.10), transparent 55%),
               linear-gradient(180deg, #050816, #070a18 40%, #060814);

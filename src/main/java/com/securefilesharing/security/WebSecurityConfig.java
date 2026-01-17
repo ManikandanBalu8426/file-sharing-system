@@ -67,7 +67,7 @@ public class WebSecurityConfig {
 
         http.headers(headers -> headers
                 .contentSecurityPolicy(csp -> csp
-                        .policyDirectives("script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com")));
+                .policyDirectives("script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'")));
 
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 

@@ -8,7 +8,6 @@
 
     <link rel="stylesheet" href="css/fallback.css">
     <link rel="stylesheet" href="css/ui.css">
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-app bg-grid text-slate-100">
@@ -35,6 +34,11 @@
                         <input class="input rounded-xl w-full py-3 px-4" id="username" type="text" autocomplete="username" placeholder="Choose a username" required>
                     </div>
                     <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-200 mb-2" for="email">Email</label>
+                        <input class="input rounded-xl w-full py-3 px-4" id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+                        <p class="mt-2 text-xs text-slate-400">We’ll send an OTP to verify this email.</p>
+                    </div>
+                    <div class="mb-4">
                         <label class="block text-sm font-medium text-slate-200 mb-2" for="password">Password</label>
                         <input class="input rounded-xl w-full py-3 px-4" id="password" type="password" autocomplete="new-password" placeholder="Create a password" required>
                         <p class="mt-2 text-xs text-slate-400">Use a strong password for better protection.</p>
@@ -51,6 +55,19 @@
                     <button id="registerBtn" class="btn-primary w-full rounded-xl py-3 font-semibold" type="submit">
                         Create Account
                     </button>
+
+                    <div id="otpSection" class="hidden mt-4">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-slate-200 mb-2" for="otp">OTP</label>
+                            <input class="input rounded-xl w-full py-3 px-4" id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter the 6-digit code">
+                            <p class="mt-2 text-xs text-slate-400">Enter the code sent to your email to complete registration.</p>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3">
+                            <button id="resendOtpBtn" class="btn-ghost rounded-xl px-3 py-2 text-sm" type="button">Resend OTP</button>
+                            <button id="changeDetailsBtn" class="btn-ghost rounded-xl px-3 py-2 text-sm" type="button">Change details</button>
+                        </div>
+                    </div>
 
                     <p class="mt-4 text-center text-sm text-slate-300">
                         Already have an account?

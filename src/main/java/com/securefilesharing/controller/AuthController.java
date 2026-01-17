@@ -3,12 +3,18 @@ package com.securefilesharing.controller;
 import com.securefilesharing.dto.JwtResponse;
 import com.securefilesharing.dto.LoginRequest;
 import com.securefilesharing.dto.MessageResponse;
+import com.securefilesharing.dto.OtpRequestResponse;
+import com.securefilesharing.dto.SigninOtpRequest;
+import com.securefilesharing.dto.SigninOtpVerifyRequest;
 import com.securefilesharing.dto.SignupRequest;
+import com.securefilesharing.dto.SignupOtpRequest;
+import com.securefilesharing.dto.SignupOtpVerifyRequest;
 import com.securefilesharing.entity.Role;
 import com.securefilesharing.entity.User;
 import com.securefilesharing.repository.UserRepository;
 import com.securefilesharing.security.jwt.JwtUtils;
 import com.securefilesharing.security.services.UserDetailsImpl;
+import com.securefilesharing.service.OtpAuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -35,54 +41,58 @@ public class AuthController {
     @Autowired
     JwtUtils jwtUtils;
 
+    @Autowired
+    OtpAuthService otpAuthService;
+
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        return ResponseEntity.badRequest().body(new MessageResponse(
+                "OTP required. Use /api/auth/signin/request-otp then /api/auth/signin/verify"));
+    }
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+    @PostMapping("/signin/request-otp")
+    public ResponseEntity<?> requestSigninOtp(@RequestBody SigninOtpRequest request) {
+        try {
+            OtpRequestResponse resp = otpAuthService.requestSigninOtp(request);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
+    }
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String role = userDetails.getAuthorities().stream().findFirst().get().getAuthority();
-
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                role));
+    @PostMapping("/signin/verify")
+    public ResponseEntity<?> verifySigninOtp(@RequestBody SigninOtpVerifyRequest request) {
+        try {
+            JwtResponse jwtResponse = otpAuthService.verifySigninOtp(request.getOtpRequestId(), request.getOtp());
+            return ResponseEntity.ok(jwtResponse);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new MessageResponse("Error: Username is already taken!"));
+        return ResponseEntity.badRequest().body(new MessageResponse(
+                "OTP required. Use /api/auth/signup/request-otp then /api/auth/signup/verify"));
+    }
+
+    @PostMapping("/signup/request-otp")
+    public ResponseEntity<?> requestSignupOtp(@RequestBody SignupOtpRequest request) {
+        try {
+            OtpRequestResponse resp = otpAuthService.requestSignupOtp(request);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
         }
+    }
 
-        // Create new user's account
-        Role role = Role.ROLE_USER;
-        if (signUpRequest.getRole() != null) {
-            try {
-                // If input "admin" -> ROLE_ADMIN
-                String reqRole = signUpRequest.getRole().toUpperCase();
-                if (!reqRole.startsWith("ROLE_")) {
-                    reqRole = "ROLE_" + reqRole;
-                }
-                role = Role.valueOf(reqRole);
-            } catch (IllegalArgumentException e) {
-                // default to user
-            }
+    @PostMapping("/signup/verify")
+    public ResponseEntity<?> verifySignupOtp(@RequestBody SignupOtpVerifyRequest request) {
+        try {
+            otpAuthService.verifySignupOtp(request.getOtpRequestId(), request.getOtp());
+            return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
         }
-
-        User user = new User();
-        user.setUsername(signUpRequest.getUsername());
-        user.setPassword(encoder.encode(signUpRequest.getPassword()));
-        user.setRole(role);
-
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 }
