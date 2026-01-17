@@ -14,7 +14,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -28,11 +30,34 @@ public class FileController {
     private UserRepository userRepository;
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile[] files) {
         try {
             User user = getCurrentUser();
-            fileService.uploadFile(file, user);
-            return ResponseEntity.ok("File uploaded successfully");
+            if (files == null || files.length == 0) {
+                return ResponseEntity.badRequest().body("No file(s) provided");
+            }
+
+            List<Map<String, Object>> uploaded = new ArrayList<>();
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+                FileEntity saved = fileService.uploadFile(file, user);
+                uploaded.add(Map.of(
+                        "id", saved.getId(),
+                        "fileName", saved.getFileName()
+                ));
+            }
+
+            if (uploaded.isEmpty()) {
+                return ResponseEntity.badRequest().body("All provided files were empty");
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "File(s) uploaded successfully",
+                    "count", uploaded.size(),
+                    "files", uploaded
+            ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Could not upload the file: " + e.getMessage());

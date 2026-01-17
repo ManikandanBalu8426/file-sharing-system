@@ -295,14 +295,15 @@ function setUploadProgress(percent) {
 
 function uploadFile() {
     const fileInput = document.getElementById('fileInput');
-    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
-    if (!file) {
-        uiToast('warn', 'No file selected', 'Choose a file to upload');
+    const files = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
+    if (!files.length) {
+        uiToast('warn', 'No file selected', 'Choose one or more files to upload');
         return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    // Backend accepts MultipartFile[] with parameter name "file".
+    files.forEach(f => formData.append('file', f));
 
     const btn = document.getElementById('uploadBtn');
     window.UI?.setButtonLoading(btn, true, 'Uploading…');
@@ -326,7 +327,8 @@ function uploadFile() {
         if (xhr.status === 401) return logout();
         if (xhr.status >= 200 && xhr.status < 300) {
             setUploadProgress(100);
-            uiToast('ok', 'Upload complete', file.name);
+            const msg = files.length === 1 ? files[0].name : `${files.length} files`;
+            uiToast('ok', 'Upload complete', msg);
             fileInput.value = '';
             await loadFiles();
             window.setTimeout(() => setUploadProgress(0), 600);

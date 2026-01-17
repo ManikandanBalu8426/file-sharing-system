@@ -60,8 +60,8 @@
                         <div class="text-sm text-slate-400">or select using the button</div>
                     </div>
                     <label class="btn-ghost rounded-xl px-4 py-2 text-sm cursor-pointer inline-flex items-center justify-center">
-                        Choose file
-                        <input type="file" id="fileInput" class="hidden" />
+                        Choose files
+                        <input type="file" id="fileInput" class="hidden" multiple />
                     </label>
                 </div>
 
@@ -130,10 +130,11 @@
             }));
 
             dz.addEventListener('drop', (e) => {
-                const file = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null;
-                if (!file) return;
-                input.files = e.dataTransfer.files;
-                window.UI?.toast({ type: 'ok', title: 'File selected', message: file.name, timeout: 2200 });
+                const dropped = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
+                if (!dropped || !dropped.length) return;
+                input.files = dropped;
+                const msg = dropped.length === 1 ? dropped[0].name : `${dropped.length} files selected`;
+                window.UI?.toast({ type: 'ok', title: 'Files selected', message: msg, timeout: 2200 });
             });
         })();
     </script>
