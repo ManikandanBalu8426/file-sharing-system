@@ -276,7 +276,7 @@ async function loadFiles() {
         row.className = 'border-b border-white/10 hover:bg-white/5 transition';
         row.innerHTML = `
             <td class="px-4 py-3 text-slate-200">${file.fileName}</td>
-            <td class="px-4 py-3 text-slate-300">${file.owner.username}</td>
+            <td class="px-4 py-3 text-slate-300">${file.ownerUsername || ''}</td>
             <td class="px-4 py-3 text-slate-400 text-sm">${file.uploadTimestamp}</td>
             <td class="px-4 py-3">
                 <button onclick="downloadFile(${file.id})" class="btn-primary rounded-xl px-3 py-2 text-sm font-semibold">Download</button>

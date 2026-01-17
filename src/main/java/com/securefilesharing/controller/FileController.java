@@ -1,7 +1,9 @@
 package com.securefilesharing.controller;
 
+import com.securefilesharing.dto.FileMetadataDto;
 import com.securefilesharing.entity.FileEntity;
 import com.securefilesharing.entity.User;
+import com.securefilesharing.entity.VisibilityType;
 import com.securefilesharing.repository.UserRepository;
 import com.securefilesharing.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +32,12 @@ public class FileController {
     private UserRepository userRepository;
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile[] files) {
+    public ResponseEntity<?> uploadFile(
+            @RequestParam("file") MultipartFile[] files,
+            @RequestParam(value = "visibility", required = false) VisibilityType visibility,
+            @RequestParam(value = "purpose", required = false) String purpose,
+            @RequestParam(value = "category", required = false) String category
+    ) {
         try {
             User user = getCurrentUser();
             if (files == null || files.length == 0) {
@@ -42,7 +49,7 @@ public class FileController {
                 if (file == null || file.isEmpty()) {
                     continue;
                 }
-                FileEntity saved = fileService.uploadFile(file, user);
+                FileEntity saved = fileService.uploadFile(file, user, visibility, purpose, category);
                 uploaded.add(Map.of(
                         "id", saved.getId(),
                         "fileName", saved.getFileName()
@@ -65,10 +72,9 @@ public class FileController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<List<FileEntity>> getListFiles() {
+    public ResponseEntity<List<FileMetadataDto>> getListFiles() {
         User user = getCurrentUser();
-        List<FileEntity> files = fileService.getAllFiles(user);
-        return ResponseEntity.ok(files);
+        return ResponseEntity.ok(fileService.listVisibleFiles(user));
     }
 
     @GetMapping("/download/{id}")

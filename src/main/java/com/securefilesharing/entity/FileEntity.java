@@ -17,6 +17,23 @@ public class FileEntity {
     @Column(nullable = false)
     private String encryptedPath;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true)
+    private VisibilityType visibilityType;
+
+    @Column(nullable = true)
+    private Long sizeBytes;
+
+    @Column(nullable = true)
+    private String contentType;
+
+    // Sensitive metadata: should be shown only when explicitly allowed
+    @Column(nullable = true)
+    private String purpose;
+
+    @Column(nullable = true)
+    private String category;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -46,6 +63,46 @@ public class FileEntity {
 
     public void setEncryptedPath(String encryptedPath) {
         this.encryptedPath = encryptedPath;
+    }
+
+    public VisibilityType getVisibilityType() {
+        return visibilityType;
+    }
+
+    public void setVisibilityType(VisibilityType visibilityType) {
+        this.visibilityType = visibilityType;
+    }
+
+    public Long getSizeBytes() {
+        return sizeBytes;
+    }
+
+    public void setSizeBytes(Long sizeBytes) {
+        this.sizeBytes = sizeBytes;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public User getOwner() {
