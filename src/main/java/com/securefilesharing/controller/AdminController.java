@@ -14,13 +14,13 @@ import java.util.List;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_AUDITOR')")
 public class AdminController {
 
     @Autowired
     private AuditService auditService;
 
     @GetMapping("/logs")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_AUDITOR')")
     public ResponseEntity<List<AuditLog>> getAllLogs() {
         return ResponseEntity.ok(auditService.getAllLogs());
     }

@@ -21,6 +21,15 @@ public class AuditLog {
     @Column(nullable = true)
     private String details;
 
+    @Column(nullable = true)
+    private Long fileId;
+
+    @Column(nullable = true)
+    private Long fileOwnerId;
+
+    @Column(nullable = true)
+    private Long targetUserId;
+
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
@@ -54,6 +63,30 @@ public class AuditLog {
 
     public void setDetails(String details) {
         this.details = details;
+    }
+
+    public Long getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(Long fileId) {
+        this.fileId = fileId;
+    }
+
+    public Long getFileOwnerId() {
+        return fileOwnerId;
+    }
+
+    public void setFileOwnerId(Long fileOwnerId) {
+        this.fileOwnerId = fileOwnerId;
+    }
+
+    public Long getTargetUserId() {
+        return targetUserId;
+    }
+
+    public void setTargetUserId(Long targetUserId) {
+        this.targetUserId = targetUserId;
     }
 
     public LocalDateTime getTimestamp() {

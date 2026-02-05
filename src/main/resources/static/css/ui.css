@@ -191,6 +191,187 @@ html.js .toast.is-out{
   transition: width .2s var(--ease-out);
 }
 
+/* Dashboard components */
+.security-banner{
+  display:flex;
+  gap: 12px;
+  align-items: center;
+}
+.security-icon{
+  width: 40px;
+  height: 40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 14px;
+  background: rgba(59,130,246,.14);
+  border: 1px solid rgba(59,130,246,.20);
+}
+.security-pill{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(2,6,23,.35);
+  color: rgba(203,213,225,1);
+  font-size: .8rem;
+}
+.security-pill .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(52,211,153,1);
+  box-shadow: 0 0 0 4px rgba(52,211,153,.12);
+}
+
+.vault-grid{
+  display:grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 980px){
+  .vault-grid{grid-template-columns: repeat(2, minmax(0, 1fr));}
+}
+@media (max-width: 520px){
+  .vault-grid{grid-template-columns: 1fr;}
+}
+
+.vault-card{
+  text-align: left;
+  padding: 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.vault-card[aria-pressed="true"],
+.vault-card.is-active{
+  border-color: rgba(59,130,246,.42);
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.35),
+    0 0 0 1px rgba(59,130,246,.22) inset;
+}
+.vault-card-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.vault-icon{
+  width: 44px;
+  height: 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  font-size: 18px;
+}
+.vault-lock{opacity:.85; font-size: 14px;}
+.vault-name{font-weight: 650; color: rgba(226,232,240,1);}
+.vault-meta{margin-top: 4px; font-size: .9rem; color: rgba(148,163,184,1);}
+
+.upload-metadata{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 980px){
+  .upload-metadata{grid-template-columns: 1fr;}
+}
+.upload-metadata .label{
+  display:block;
+  font-size: .75rem;
+  color: rgba(148,163,184,1);
+  margin-bottom: 6px;
+}
+
+.table-toolbar{
+  display:flex;
+  gap: 12px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+.table-toolbar .search{flex:1 1 240px; min-width: 220px;}
+.table-toolbar .hint{flex: 0 0 auto;}
+
+.segmented{
+  display:inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+}
+.segmented .seg-btn{
+  border: 0;
+  background: transparent;
+  color: rgba(203,213,225,1);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: .85rem;
+}
+.segmented .seg-btn:hover{background: rgba(255,255,255,.06);}
+.segmented .seg-btn.is-active{
+  background: rgba(59,130,246,.18);
+  border: 1px solid rgba(59,130,246,.25);
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  font-size: .8rem;
+  color: rgba(226,232,240,1);
+  white-space: nowrap;
+}
+.badge .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.badge.private .dot{background: rgba(148,163,184,1);}
+.badge.public .dot{background: rgba(52,211,153,1);}
+.badge.protected .dot{background: rgba(251,191,36,1);}
+
+.file-name{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.file-type{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  font-size: 14px;
+}
+.group-row{
+  background: rgba(255,255,255,.04);
+}
+.group-row td{
+  color: rgba(148,163,184,1);
+  font-size: .75rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.btn-disabled{
+  opacity: .55;
+  cursor: not-allowed;
+  filter: grayscale(.2);
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce){
   *{animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important;}

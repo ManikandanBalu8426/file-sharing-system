@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - Secure File Sharing</title>
+    <title>SecureShare — Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <link rel="stylesheet" href="css/fallback.css">
@@ -35,13 +35,85 @@
         <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
                 <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight">Your Secure Vault</h1>
-                <p class="mt-2 text-slate-300">Upload encrypted files, download safely, and keep everything auditable.</p>
+                <p class="mt-2 text-slate-300">AES-encrypted storage, JWT authentication, and strict role-based access checks. No folders—only permissions.</p>
             </div>
             <div class="flex gap-2">
-                <a href="#files" class="btn-ghost rounded-xl px-4 py-2 text-sm">View files</a>
-                <a href="#upload" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold">Upload</a>
+                <a href="#upload" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold">Upload File</a>
+                <a href="#files" class="btn-ghost rounded-xl px-4 py-2 text-sm">View Files</a>
             </div>
         </div>
+
+        <section class="mt-6 rounded-3xl card-glass p-5">
+            <div class="security-banner">
+                <div class="security-icon" aria-hidden="true">🛡️</div>
+                <div class="flex-1">
+                    <div class="text-sm text-slate-200" style="font-weight:650">Organization-grade controls</div>
+                    <div class="text-sm text-slate-300">Files appear only when your role + approvals allow access. Protected items may be view-only unless download permission is granted.</div>
+                </div>
+                <div class="security-pill" title="Security posture">
+                    <span class="dot"></span>
+                    <span>JWT + Role Checks</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category Overview (logical groupings, not folders) -->
+        <section class="mt-8">
+            <div class="flex items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold">File Category Overview</h2>
+                    <p class="mt-1 text-sm text-slate-300">Click a category to filter what you can access.</p>
+                </div>
+                <button id="clearTypeFilter" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold" type="button">Clear filter</button>
+            </div>
+
+            <div class="vault-grid mt-5" role="list">
+                <a class="vault-card card-glass lift" href="files.html?type=images#files" aria-label="View Images">
+                    <div class="vault-card-top">
+                        <div class="vault-icon" aria-hidden="true">🖼️</div>
+                        <div class="vault-lock" title="Access controlled" aria-hidden="true">🔒</div>
+                    </div>
+                    <div class="vault-name">Images</div>
+                    <div class="vault-meta"><span id="countImages">0</span> files</div>
+                </a>
+
+                <a class="vault-card card-glass lift" href="files.html?type=documents#files" aria-label="View Documents">
+                    <div class="vault-card-top">
+                        <div class="vault-icon" aria-hidden="true">📄</div>
+                        <div class="vault-lock" title="Access controlled" aria-hidden="true">🔒</div>
+                    </div>
+                    <div class="vault-name">Documents</div>
+                    <div class="vault-meta"><span id="countDocuments">0</span> files</div>
+                </a>
+
+                <a class="vault-card card-glass lift" href="files.html?type=videos#files" aria-label="View Videos">
+                    <div class="vault-card-top">
+                        <div class="vault-icon" aria-hidden="true">🎬</div>
+                        <div class="vault-lock" title="Access controlled" aria-hidden="true">🔒</div>
+                    </div>
+                    <div class="vault-name">Videos</div>
+                    <div class="vault-meta"><span id="countVideos">0</span> files</div>
+                </a>
+
+                <a class="vault-card card-glass lift" href="files.html?type=audio#files" aria-label="View Audio">
+                    <div class="vault-card-top">
+                        <div class="vault-icon" aria-hidden="true">🎧</div>
+                        <div class="vault-lock" title="Access controlled" aria-hidden="true">🔒</div>
+                    </div>
+                    <div class="vault-name">Audio</div>
+                    <div class="vault-meta"><span id="countAudio">0</span> files</div>
+                </a>
+
+                <a class="vault-card card-glass lift" href="files.html?type=archives#files" aria-label="View Archives">
+                    <div class="vault-card-top">
+                        <div class="vault-icon" aria-hidden="true">🗜️</div>
+                        <div class="vault-lock" title="Access controlled" aria-hidden="true">🔒</div>
+                    </div>
+                    <div class="vault-name">Archives</div>
+                    <div class="vault-meta"><span id="countArchives">0</span> files</div>
+                </a>
+            </div>
+        </section>
 
         <!-- Upload Section -->
         <section id="upload" class="mt-8 rounded-3xl card-glass p-6 sm:p-8">
@@ -50,7 +122,7 @@
                     <h2 class="text-xl font-semibold">Upload a file</h2>
                     <p class="mt-1 text-sm text-slate-300">Drag &amp; drop, or choose a file. Upload progress appears below.</p>
                 </div>
-                <div class="text-xs text-slate-400">Protected by JWT + role checks</div>
+                <div class="text-xs text-slate-400">🔒 Role-based + JWT-protected upload</div>
             </div>
 
             <div id="dropzone" class="dropzone mt-5 rounded-2xl p-5">
@@ -65,6 +137,25 @@
                     </label>
                 </div>
 
+                <div class="upload-metadata mt-4">
+                    <div class="field">
+                        <label class="label" for="visibilitySelect">Visibility</label>
+                        <select id="visibilitySelect" class="input rounded-xl px-3 py-2">
+                            <option value="PRIVATE" selected>PRIVATE (owner only)</option>
+                            <option value="PROTECTED">PROTECTED (approval required)</option>
+                            <option value="PUBLIC">PUBLIC (org-wide)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="purposeInput">Purpose (optional)</label>
+                        <input id="purposeInput" class="input rounded-xl px-3 py-2" placeholder="e.g., Q1 audit evidence" />
+                    </div>
+                    <div class="field">
+                        <label class="label" for="categoryInput">Category label (optional)</label>
+                        <input id="categoryInput" class="input rounded-xl px-3 py-2" placeholder="e.g., Finance, HR, Legal" />
+                    </div>
+                </div>
+
                 <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
                     <button id="uploadBtn" onclick="uploadFile()" class="btn-primary rounded-xl px-5 py-3 font-semibold">
                         Upload now
@@ -77,6 +168,7 @@
                         <div class="progress"><div id="uploadBar"></div></div>
                     </div>
                 </div>
+                <div id="selectedFiles" class="mt-4 text-sm text-slate-400"></div>
             </div>
         </section>
 
@@ -84,19 +176,33 @@
         <section id="files" class="mt-8 rounded-3xl card-glass p-6 sm:p-8">
             <div class="flex items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-xl font-semibold">My Files</h2>
-                    <p class="mt-1 text-sm text-slate-300">Download files you have permission to access.</p>
+                    <h2 class="text-xl font-semibold">Accessible Files</h2>
+                    <p class="mt-1 text-sm text-slate-300">Only authorized files are displayed. Download is enabled only when permitted.</p>
                 </div>
                 <button onclick="loadFiles()" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold">Refresh</button>
+            </div>
+
+            <div class="table-toolbar mt-5">
+                <div class="segmented" role="tablist" aria-label="Ownership filter">
+                    <button id="ownFilterAll" class="seg-btn is-active" type="button" data-owner="all" role="tab" aria-selected="true">All</button>
+                    <button id="ownFilterMine" class="seg-btn" type="button" data-owner="mine" role="tab" aria-selected="false">My files</button>
+                    <button id="ownFilterShared" class="seg-btn" type="button" data-owner="shared" role="tab" aria-selected="false">Shared</button>
+                </div>
+                <div class="search">
+                    <input id="searchInput" class="input rounded-xl px-3 py-2" placeholder="Search by name, owner, category…" />
+                </div>
+                <div class="hint text-xs text-slate-400" id="activeFilterHint"></div>
             </div>
 
             <div class="mt-5 overflow-x-auto rounded-2xl border border-white/10">
                 <table class="w-full text-sm">
                     <thead class="bg-white/5">
                         <tr class="text-left text-slate-300">
-                            <th class="px-4 py-3">File Name</th>
-                            <th class="px-4 py-3">Owner</th>
-                            <th class="px-4 py-3">Uploaded</th>
+                            <th class="px-4 py-3">File</th>
+                            <th class="px-4 py-3">Owner / Uploaded by</th>
+                            <th class="px-4 py-3">Upload date &amp; time</th>
+                            <th class="px-4 py-3">Access level</th>
+                            <th class="px-4 py-3">Visibility</th>
                             <th class="px-4 py-3">Action</th>
                         </tr>
                     </thead>
@@ -104,6 +210,10 @@
                         <!-- Files inserted by app.js -->
                     </tbody>
                 </table>
+            </div>
+
+            <div id="emptyState" class="mt-4 hidden rounded-2xl border border-white/10 bg-white/5 p-4 text-slate-300">
+                No accessible files match the current filters.
             </div>
         </section>
     </main>

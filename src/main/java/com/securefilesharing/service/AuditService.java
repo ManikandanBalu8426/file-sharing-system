@@ -16,15 +16,27 @@ public class AuditService {
     private AuditLogRepository auditLogRepository;
 
     public void logAction(User user, String action, String details) {
+        logAction(user, action, details, null, null, null);
+    }
+
+    public void logAction(User user, String action, String details, Long fileId, Long fileOwnerId, Long targetUserId) {
         AuditLog log = new AuditLog();
         log.setUser(user);
         log.setAction(action);
         log.setDetails(details);
+        log.setFileId(fileId);
+        log.setFileOwnerId(fileOwnerId);
+        log.setTargetUserId(targetUserId);
         log.setTimestamp(LocalDateTime.now());
         auditLogRepository.save(log);
     }
 
     public List<AuditLog> getAllLogs() {
         return auditLogRepository.findAllByOrderByTimestampDesc();
+    }
+
+    public List<AuditLog> searchLogs(Long actorUserId, Long fileId, Long fileOwnerId, String action,
+                                     LocalDateTime from, LocalDateTime to) {
+        return auditLogRepository.search(actorUserId, fileId, fileOwnerId, action, from, to);
     }
 }

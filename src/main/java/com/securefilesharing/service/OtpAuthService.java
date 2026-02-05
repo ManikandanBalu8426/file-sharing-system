@@ -82,7 +82,8 @@ public class OtpAuthService {
             throw new IllegalArgumentException("Email is already in use");
         }
 
-        Role role = parseRole(request.getRole());
+        // Security: role assignment is admin-controlled. New signups are always ROLE_USER.
+        Role role = Role.ROLE_USER;
         String passwordHash = passwordEncoder.encode(request.getPassword());
 
         SignupPayload payload = new SignupPayload();
@@ -110,6 +111,7 @@ public class OtpAuthService {
         user.setEmail(payload.email);
         user.setPassword(payload.passwordHash);
         user.setRole(Role.valueOf(payload.role));
+        user.setActive(true);
 
         userRepository.save(user);
     }

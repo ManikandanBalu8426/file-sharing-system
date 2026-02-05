@@ -12,6 +12,9 @@ public class FileMetadataDto {
     private LocalDateTime uploadTimestamp;
     private VisibilityType visibilityType;
 
+    // Permission hints for UI (backend is still the source of truth)
+    private boolean canDownload;
+
     // Sensitive metadata (only when allowed)
     private String purpose;
     private String category;
@@ -78,5 +81,13 @@ public class FileMetadataDto {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public boolean isCanDownload() {
+        return canDownload;
+    }
+
+    public void setCanDownload(boolean canDownload) {
+        this.canDownload = canDownload;
     }
 }

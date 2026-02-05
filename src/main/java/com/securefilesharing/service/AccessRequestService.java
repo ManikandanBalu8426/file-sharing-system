@@ -31,8 +31,8 @@ public class AccessRequestService {
 
     @Transactional
     public AccessRequestDto createRequest(Long fileId, CreateAccessRequestDto body, User requester) {
-        if (requester.getRole() == Role.ROLE_AUDITOR) {
-            throw new RuntimeException("Auditor cannot request access");
+        if (requester.getRole() != Role.ROLE_ADMIN) {
+            throw new RuntimeException("Only ADMIN can request access");
         }
         if (body == null || body.getAccessType() == null) {
             throw new RuntimeException("Access type is required");
@@ -60,7 +60,9 @@ public class AccessRequestService {
         req.setCreatedAt(LocalDateTime.now());
 
         FileAccessRequest saved = fileAccessRequestRepository.save(req);
-        auditService.logAction(requester, "ACCESS_REQUEST", "Requested " + saved.getAccessType() + " for fileId=" + fileId);
+        auditService.logAction(requester, "ACCESS_REQUEST",
+            "Requested " + saved.getAccessType() + " for fileId=" + fileId,
+            fileId, file.getOwner() != null ? file.getOwner().getId() : null, null);
         return toDto(saved);
     }
 
@@ -111,7 +113,11 @@ public class AccessRequestService {
         req.setExpiresAt(LocalDateTime.now().plusSeconds(Math.max(60, protectedAccessTtlSeconds)));
 
         FileAccessRequest saved = fileAccessRequestRepository.save(req);
-        auditService.logAction(approver, "ACCESS_APPROVED", "Approved requestId=" + saved.getId() + " for fileId=" + saved.getFile().getId());
+        auditService.logAction(approver, "ACCESS_APPROVED",
+            "Approved requestId=" + saved.getId() + " for fileId=" + saved.getFile().getId(),
+            saved.getFile() != null ? saved.getFile().getId() : null,
+            saved.getFile() != null && saved.getFile().getOwner() != null ? saved.getFile().getOwner().getId() : null,
+            saved.getRequester() != null ? saved.getRequester().getId() : null);
         return toDto(saved);
     }
 
@@ -138,7 +144,11 @@ public class AccessRequestService {
         req.setExpiresAt(null);
 
         FileAccessRequest saved = fileAccessRequestRepository.save(req);
-        auditService.logAction(approver, "ACCESS_REJECTED", "Rejected requestId=" + saved.getId() + " for fileId=" + saved.getFile().getId());
+        auditService.logAction(approver, "ACCESS_REJECTED",
+            "Rejected requestId=" + saved.getId() + " for fileId=" + saved.getFile().getId(),
+            saved.getFile() != null ? saved.getFile().getId() : null,
+            saved.getFile() != null && saved.getFile().getOwner() != null ? saved.getFile().getOwner().getId() : null,
+            saved.getRequester() != null ? saved.getRequester().getId() : null);
         return toDto(saved);
     }
 

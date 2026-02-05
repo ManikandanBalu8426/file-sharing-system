@@ -295,3 +295,108 @@ Encrypted data storage
 Complete audit trail
 
 Reduced risk of data breaches
+
+
+============================================================
+ROLE-BASED REQUIREMENTS (SOURCE OF TRUTH)
+============================================================
+
+ROLE_USER (Student / Employee / Normal User)
+This role is the data owner. Ownership = control.
+
+USER can do
+
+Register & log in
+
+Upload files
+
+Choose file visibility:
+Public / Private / Protected
+
+View:
+Their own files (content + metadata)
+
+Manage their files:
+Delete (if allowed)
+Change visibility
+
+Respond to access requests:
+Approve
+Reject
+
+See:
+Who requested access
+Who accessed their file (basic audit)
+
+USER must NEVER do
+
+See other users’ files
+
+See admin-only audit dashboards
+
+Bypass visibility rules
+
+
+ROLE_ADMIN (Staff / Authority / Manager)
+Admin is not the owner. Admin is a controller and auditor.
+
+ADMIN can do
+
+Manage users:
+Activate / deactivate
+Assign roles
+
+View PUBLIC files (as per policy)
+
+View METADATA of:
+Public files
+Protected files (limited metadata)
+
+Request access to PROTECTED files:
+Must give reason
+Must specify access type (view/download)
+
+Download files:
+ONLY after user approval
+
+View audit logs:
+File uploads
+Access events
+Approval history
+
+ADMIN must NEVER do
+
+Access PRIVATE files
+
+Download files without consent (unless domain explicitly allows it)
+
+Override user decisions silently
+
+
+ROLE_AUDITOR (Optional but powerful)
+Auditor exists for accountability, not usage.
+
+AUDITOR can do
+
+View logs:
+Who uploaded
+Who requested access
+Who downloaded
+When it happened
+
+Filter logs by:
+User
+File
+Date
+
+Export audit reports (optional)
+
+AUDITOR must NEVER do
+
+Upload files
+
+Download files
+
+Modify files
+
+Approve access

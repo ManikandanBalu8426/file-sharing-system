@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.Key;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,6 +50,12 @@ public class FileService {
     private static final String ALGORITHM = "AES";
     private static final byte[] KEY = "MySuperSecretKey".getBytes(); // 16 bytes for AES-128
 
+    private static final String ENCRYPTED_EXTENSION = ".enc";
+    private static final String DIR_IMAGES = "images";
+    private static final String DIR_VIDEOS = "videos";
+    private static final String DIR_AUDIO = "audio";
+    private static final String DIR_DOCUMENTS = "documents";
+
     public FileEntity uploadFile(MultipartFile file, User owner) throws Exception {
         return uploadFile(file, owner, VisibilityType.PRIVATE, null, null);
     }
@@ -60,15 +67,24 @@ public class FileService {
             String purpose,
             String category
     ) throws Exception {
-        // Create upload directory if not exists
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        // Ensure base storage directory exists
+        File baseDir = new File(uploadDir);
+        if (!baseDir.exists()) {
+            baseDir.mkdirs();
         }
 
-        String fileName = file.getOriginalFilename();
-        String encryptedFileName = UUID.randomUUID().toString() + "_" + fileName + ".enc";
-        Path path = Paths.get(uploadDir + File.separator + encryptedFileName);
+        String fileName = sanitizeOriginalFilename(file.getOriginalFilename());
+        String categoryDirName = resolveCategoryDir(file, fileName);
+
+        // Ensure category subdirectory exists
+        Path categoryDir = Paths.get(uploadDir).resolve(categoryDirName);
+        File categoryDirFile = categoryDir.toFile();
+        if (!categoryDirFile.exists()) {
+            categoryDirFile.mkdirs();
+        }
+
+        String encryptedFileName = UUID.randomUUID().toString() + "_" + fileName + ENCRYPTED_EXTENSION;
+        Path path = categoryDir.resolve(encryptedFileName);
 
         // Encrypt content
         byte[] fileBytes = file.getBytes();
@@ -91,8 +107,135 @@ public class FileService {
         fileEntity.setPurpose(purpose);
         fileEntity.setCategory(category);
 
-        auditService.logAction(owner, "UPLOAD", "Uploaded file: " + fileName);
-        return fileRepository.save(fileEntity);
+        FileEntity saved = fileRepository.save(fileEntity);
+        auditService.logAction(owner, "UPLOAD",
+                "Uploaded fileId=" + saved.getId() + ", name=" + fileName,
+                saved.getId(), owner.getId(), null);
+        return saved;
+    }
+
+    private String sanitizeOriginalFilename(String originalFilename) {
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return "file";
+        }
+        // Avoid path traversal / client-supplied paths
+        String baseName = Paths.get(originalFilename).getFileName().toString();
+        // Keep filename readable; remove common problematic characters
+        String cleaned = baseName.replace("\\u0000", "").replaceAll("[\\r\\n]", "").trim();
+        return cleaned.isBlank() ? "file" : cleaned;
+    }
+
+    private String resolveCategoryDir(MultipartFile file, String safeFileName) {
+        String contentType = file != null ? file.getContentType() : null;
+
+        if (contentType != null) {
+            String ct = contentType.toLowerCase(Locale.ROOT);
+            if (ct.startsWith("image/")) return DIR_IMAGES;
+            if (ct.startsWith("video/")) return DIR_VIDEOS;
+            if (ct.startsWith("audio/")) return DIR_AUDIO;
+
+            // Common document-like content types
+            if (ct.equals("application/pdf")
+                    || ct.startsWith("text/")
+                    || ct.contains("officedocument")
+                    || ct.equals("application/msword")
+                    || ct.equals("application/rtf")
+                    || ct.equals("application/vnd.ms-excel")
+                    || ct.equals("application/vnd.ms-powerpoint")) {
+                return DIR_DOCUMENTS;
+            }
+        }
+
+        String ext = getFileExtension(safeFileName);
+        if (ext == null) {
+            return DIR_DOCUMENTS;
+        }
+
+        return switch (ext) {
+            case "jpg", "jpeg", "png", "gif", "bmp", "webp", "avif", "svg" -> DIR_IMAGES;
+            case "mp4", "mov", "avi", "mkv", "webm", "m4v" -> DIR_VIDEOS;
+            case "mp3", "wav", "flac", "aac", "ogg", "m4a" -> DIR_AUDIO;
+            default -> DIR_DOCUMENTS;
+        };
+    }
+
+    private String getFileExtension(String fileName) {
+        if (fileName == null) return null;
+        String name = fileName.trim();
+        int lastDot = name.lastIndexOf('.');
+        if (lastDot < 0 || lastDot == name.length() - 1) return null;
+        return name.substring(lastDot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    @Transactional
+    public void deleteFile(Long fileId, User requester) {
+        if (requester == null) throw new RuntimeException("Unauthorized");
+        if (requester.getRole() != Role.ROLE_USER) {
+            throw new RuntimeException("Only USER can delete files");
+        }
+
+        FileEntity fileEntity = fileRepository.findById(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        boolean isOwner = fileEntity.getOwner() != null
+                && fileEntity.getOwner().getId() != null
+                && fileEntity.getOwner().getId().equals(requester.getId());
+        if (!isOwner) {
+            throw new RuntimeException("Only the file owner can delete this file");
+        }
+
+        // Remove access requests for the file.
+        fileAccessRequestRepository.deleteByFileId(fileId);
+
+        // Remove from disk best-effort.
+        try {
+            if (fileEntity.getEncryptedPath() != null) {
+                Files.deleteIfExists(Paths.get(fileEntity.getEncryptedPath()));
+            }
+        } catch (Exception ignored) {
+            // best-effort disk cleanup
+        }
+
+        fileRepository.delete(fileEntity);
+        auditService.logAction(requester, "DELETE",
+                "Deleted fileId=" + fileId + ", name=" + fileEntity.getFileName(),
+                fileId, requester.getId(), null);
+    }
+
+    @Transactional
+    public FileMetadataDto updateVisibility(Long fileId, VisibilityType newVisibility, User requester) {
+        if (requester == null) throw new RuntimeException("Unauthorized");
+        if (requester.getRole() != Role.ROLE_USER) {
+            throw new RuntimeException("Only USER can change visibility");
+        }
+        if (newVisibility == null) {
+            throw new RuntimeException("Visibility is required");
+        }
+
+        FileEntity fileEntity = fileRepository.findById(fileId)
+                .orElseThrow(() -> new RuntimeException("File not found"));
+
+        boolean isOwner = fileEntity.getOwner() != null
+                && fileEntity.getOwner().getId() != null
+                && fileEntity.getOwner().getId().equals(requester.getId());
+        if (!isOwner) {
+            throw new RuntimeException("Only the file owner can change visibility");
+        }
+
+        VisibilityType old = fileEntity.getVisibilityType() == null ? VisibilityType.PRIVATE : fileEntity.getVisibilityType();
+        fileEntity.setVisibilityType(newVisibility);
+        FileEntity saved = fileRepository.save(fileEntity);
+
+        // If the file is no longer PROTECTED, clear access requests (they are no longer meaningful).
+        if (newVisibility != VisibilityType.PROTECTED) {
+            fileAccessRequestRepository.deleteByFileId(fileId);
+        }
+
+        auditService.logAction(requester, "VISIBILITY_CHANGE",
+                "Changed visibility for fileId=" + fileId + " from " + old + " to " + newVisibility,
+                fileId, requester.getId(), null);
+
+        return toMetadataDto(requester, saved);
     }
 
     @Transactional(readOnly = true)
@@ -102,7 +245,8 @@ public class FileService {
 
         if (!canDownloadContent(requester, fileEntity)) {
             auditService.logAction(requester, "DOWNLOAD_DENIED",
-                    "Denied download for fileId=" + fileEntity.getId() + ", name=" + fileEntity.getFileName());
+                "Denied download for fileId=" + fileEntity.getId() + ", name=" + fileEntity.getFileName(),
+                fileEntity.getId(), fileEntity.getOwner() != null ? fileEntity.getOwner().getId() : null, null);
             throw new RuntimeException("Unauthorized Access");
         }
 
@@ -110,7 +254,9 @@ public class FileService {
         byte[] encryptedBytes = Files.readAllBytes(path);
         byte[] decryptedBytes = decrypt(encryptedBytes);
 
-        auditService.logAction(requester, "DOWNLOAD", "Downloaded file: " + fileEntity.getFileName());
+        auditService.logAction(requester, "DOWNLOAD",
+            "Downloaded fileId=" + fileEntity.getId() + ", name=" + fileEntity.getFileName(),
+            fileEntity.getId(), fileEntity.getOwner() != null ? fileEntity.getOwner().getId() : null, null);
         return decryptedBytes;
     }
 
@@ -118,6 +264,14 @@ public class FileService {
     public List<FileMetadataDto> listVisibleFiles(User requester) {
         if (requester.getRole() == Role.ROLE_AUDITOR) {
             return List.of();
+        }
+
+        // USER is a data owner: never list other users' files.
+        if (requester.getRole() == Role.ROLE_USER) {
+            return fileRepository.findByOwner(requester)
+                    .stream()
+                    .map(f -> toMetadataDto(requester, f))
+                    .collect(Collectors.toList());
         }
 
         List<FileEntity> all = fileRepository.findAll();
@@ -145,6 +299,8 @@ public class FileService {
         dto.setUploadTimestamp(file.getUploadTimestamp());
         dto.setVisibilityType(file.getVisibilityType() == null ? VisibilityType.PRIVATE : file.getVisibilityType());
 
+        dto.setCanDownload(canDownloadContent(requester, file));
+
         if (canViewSensitiveMetadata(requester, file)) {
             dto.setPurpose(file.getPurpose());
             dto.setCategory(file.getCategory());
@@ -160,6 +316,11 @@ public class FileService {
         boolean isOwner = file.getOwner() != null && file.getOwner().getId() != null
                 && file.getOwner().getId().equals(requester.getId());
         if (isOwner) return true;
+
+        if (requester.getRole() == Role.ROLE_USER) {
+            // USER must never see other users' files (even PUBLIC/PROTECTED).
+            return false;
+        }
 
         VisibilityType visibility = file.getVisibilityType();
         if (visibility == null) visibility = VisibilityType.PRIVATE;
@@ -197,6 +358,11 @@ public class FileService {
         boolean isOwner = file.getOwner() != null && file.getOwner().getId() != null
                 && file.getOwner().getId().equals(requester.getId());
         if (isOwner) return true;
+
+        if (requester.getRole() == Role.ROLE_USER) {
+            // USER cannot download other users' files.
+            return false;
+        }
 
         VisibilityType visibility = file.getVisibilityType();
         if (visibility == null) visibility = VisibilityType.PRIVATE;

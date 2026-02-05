@@ -58,8 +58,9 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
+                .requestMatchers("/admin.html").hasAnyAuthority("ROLE_ADMIN", "ROLE_AUDITOR")
                         .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/dashboard.html",
-                                "/admin.html", "/js/**", "/css/**")
+                    "/js/**", "/css/**")
                         .permitAll()
                         .anyRequest().authenticated());
 

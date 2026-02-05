@@ -20,4 +20,6 @@ public interface FileAccessRequestRepository extends JpaRepository<FileAccessReq
             AccessRequestStatus status,
             LocalDateTime now
     );
+
+    void deleteByFileId(Long fileId);
 }

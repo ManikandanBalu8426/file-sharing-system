@@ -23,6 +23,11 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    // Nullable for smooth schema evolution: existing DB rows may have NULL after ddl-auto=update.
+    // Treat NULL as active=true in isActive().
+    @Column(nullable = true)
+    private Boolean active = true;
+
     public Long getId() {
         return id;
     }
@@ -61,5 +66,13 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isActive() {
+        return active == null ? true : active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

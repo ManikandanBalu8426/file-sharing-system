@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,7 @@ public class FileController {
     private UserRepository userRepository;
 
     @PostMapping("/upload")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<?> uploadFile(
             @RequestParam("file") MultipartFile[] files,
             @RequestParam(value = "visibility", required = false) VisibilityType visibility,
@@ -72,12 +74,14 @@ public class FileController {
     }
 
     @GetMapping("/list")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<FileMetadataDto>> getListFiles() {
         User user = getCurrentUser();
         return ResponseEntity.ok(fileService.listVisibleFiles(user));
     }
 
     @GetMapping("/download/{id}")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> downloadFile(@PathVariable Long id) {
         try {
             User user = getCurrentUser();
@@ -93,6 +97,30 @@ public class FileController {
                     .body(resource);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<?> deleteFile(@PathVariable Long id) {
+        try {
+            User user = getCurrentUser();
+            fileService.deleteFile(id, user);
+            return ResponseEntity.ok(Map.of("message", "File deleted", "id", id));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/visibility")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<?> updateVisibility(@PathVariable Long id, @RequestParam("visibility") VisibilityType visibility) {
+        try {
+            User user = getCurrentUser();
+            FileMetadataDto dto = fileService.updateVisibility(id, visibility, user);
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 

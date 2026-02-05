@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SecureShare — Files</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="css/fallback.css">
+    <link rel="stylesheet" href="css/ui.css">
+</head>
+
+<body class="bg-app bg-grid text-slate-100" onload="checkAuth(); initFilesPage(); loadFiles()">
+    <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="h-16 flex items-center justify-between">
+                <a href="dashboard.html" class="flex items-center gap-3">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-emerald-400 text-slate-950 font-black">S</span>
+                    <span class="font-semibold tracking-tight">SecureShare</span>
+                </a>
+
+                <div class="flex items-center gap-3">
+                    <div class="hidden sm:block text-right">
+                        <div class="text-sm text-slate-200" id="usernameDisplay"></div>
+                        <div class="text-xs text-slate-400" id="roleDisplay"></div>
+                    </div>
+                    <a href="admin.html" id="adminLink" class="hidden btn-primary rounded-xl px-3 py-2 text-sm font-semibold">Audit Logs</a>
+                    <button onclick="logout()" class="btn-primary rounded-xl px-3 py-2 text-sm font-semibold">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-10 page-enter">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div>
+                <div class="text-xs text-slate-400" id="filesBreadcrumb">Dashboard / Files</div>
+                <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight" id="filesTitle">Accessible Files</h1>
+                <p class="mt-2 text-slate-300" id="filesSubtitle">Files are listed strictly by role and permissions (not folder paths).</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="dashboard.html" class="btn-ghost rounded-xl px-4 py-2 text-sm">Back to dashboard</a>
+                <a href="files.html" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold" id="clearTypeLink">Clear type</a>
+            </div>
+        </div>
+
+        <section class="mt-6 rounded-3xl card-glass p-5">
+            <div class="security-banner">
+                <div class="security-icon" aria-hidden="true">🔒</div>
+                <div class="flex-1">
+                    <div class="text-sm text-slate-200" style="font-weight:650">Access-controlled listing</div>
+                    <div class="text-sm text-slate-300">Unauthorized files are not visible. Download actions are disabled when permission is missing.</div>
+                </div>
+                <div class="security-pill" title="Security posture">
+                    <span class="dot"></span>
+                    <span>JWT + Role Checks</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="files" class="mt-8 rounded-3xl card-glass p-6 sm:p-8">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold">Accessible Files</h2>
+                    <p class="mt-1 text-sm text-slate-300">Filter by ownership and search across accessible metadata.</p>
+                </div>
+                <button onclick="loadFiles()" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold">Refresh</button>
+            </div>
+
+            <div class="table-toolbar mt-5">
+                <div class="segmented" role="tablist" aria-label="Ownership filter">
+                    <button id="ownFilterAll" class="seg-btn is-active" type="button" data-owner="all" role="tab" aria-selected="true">All</button>
+                    <button id="ownFilterMine" class="seg-btn" type="button" data-owner="mine" role="tab" aria-selected="false">My files</button>
+                    <button id="ownFilterShared" class="seg-btn" type="button" data-owner="shared" role="tab" aria-selected="false">Shared</button>
+                </div>
+                <div class="search">
+                    <input id="searchInput" class="input rounded-xl px-3 py-2" placeholder="Search by name, owner, category…" />
+                </div>
+                <div class="hint text-xs text-slate-400" id="activeFilterHint"></div>
+            </div>
+
+            <div class="mt-5 overflow-x-auto rounded-2xl border border-white/10">
+                <table class="w-full text-sm">
+                    <thead class="bg-white/5">
+                        <tr class="text-left text-slate-300">
+                            <th class="px-4 py-3">File</th>
+                            <th class="px-4 py-3">Owner / Uploaded by</th>
+                            <th class="px-4 py-3">Upload date &amp; time</th>
+                            <th class="px-4 py-3">Access level</th>
+                            <th class="px-4 py-3">Visibility</th>
+                            <th class="px-4 py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileList"></tbody>
+                </table>
+            </div>
+
+            <div id="emptyState" class="mt-4 hidden rounded-2xl border border-white/10 bg-white/5 p-4 text-slate-300">
+                No accessible files match the current filters.
+            </div>
+        </section>
+    </main>
+
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
