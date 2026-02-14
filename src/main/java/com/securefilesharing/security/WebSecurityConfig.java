@@ -32,6 +32,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("deprecation")
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
 
@@ -56,13 +57,42 @@ public class WebSecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/test/**").permitAll()
-                .requestMatchers("/admin.html").hasAnyAuthority("ROLE_ADMIN", "ROLE_AUDITOR")
-                        .requestMatchers("/", "/index.html", "/login.html", "/register.html", "/dashboard.html",
-                    "/js/**", "/css/**")
-                        .permitAll()
-                        .anyRequest().authenticated());
+            .authorizeHttpRequests(auth -> auth
+                // Public API endpoints
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/test/**").permitAll()
+
+                // Auditor endpoints - READ-ONLY access for auditors, admins, super admins
+                .requestMatchers("/api/audit/**").hasAnyRole("AUDITOR", "ADMIN", "SUPER_ADMIN")
+
+                // Lock down admin APIs - Auditors should NOT have write access to admin functions
+                .requestMatchers("/api/admin/**").hasAnyAuthority(
+                    "PERM_ADMIN_ACCESS",
+                    "ROLE_ADMIN",
+                    "ROLE_SUPER_ADMIN")
+
+                // Block auditors from file upload/download/delete operations
+                .requestMatchers("/api/files/upload/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/files/download/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/files/delete/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/files/share/**").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN")
+
+                // Static assets/pages (JWT is stored in localStorage, so HTML must be publicly retrievable)
+                .requestMatchers(
+                    "/",
+                    "/index.html",
+                    "/login.html",
+                    "/register.html",
+                    "/dashboard.html",
+                    "/files.html",
+                    "/admin.html",
+                    "/auditor.html",
+                    "/js/**",
+                    "/css/**",
+                    "/favicon.ico")
+                .permitAll()
+
+                .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());
 

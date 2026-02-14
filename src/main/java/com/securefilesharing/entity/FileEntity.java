@@ -41,6 +41,9 @@ public class FileEntity {
     @Column(nullable = false)
     private LocalDateTime uploadTimestamp;
 
+    @Column(nullable = false)
+    private boolean isDeleted = false;
+
     public Long getId() {
         return id;
     }
@@ -119,5 +122,13 @@ public class FileEntity {
 
     public void setUploadTimestamp(LocalDateTime uploadTimestamp) {
         this.uploadTimestamp = uploadTimestamp;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 }

@@ -6,6 +6,7 @@ import com.securefilesharing.entity.User;
 import com.securefilesharing.entity.VisibilityType;
 import com.securefilesharing.repository.UserRepository;
 import com.securefilesharing.service.FileService;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -38,8 +39,7 @@ public class FileController {
             @RequestParam("file") MultipartFile[] files,
             @RequestParam(value = "visibility", required = false) VisibilityType visibility,
             @RequestParam(value = "purpose", required = false) String purpose,
-            @RequestParam(value = "category", required = false) String category
-    ) {
+            @RequestParam(value = "category", required = false) String category) {
         try {
             User user = getCurrentUser();
             if (files == null || files.length == 0) {
@@ -52,10 +52,10 @@ public class FileController {
                     continue;
                 }
                 FileEntity saved = fileService.uploadFile(file, user, visibility, purpose, category);
+
                 uploaded.add(Map.of(
                         "id", saved.getId(),
-                        "fileName", saved.getFileName()
-                ));
+                        "fileName", saved.getFileName()));
             }
 
             if (uploaded.isEmpty()) {
@@ -65,8 +65,7 @@ public class FileController {
             return ResponseEntity.ok(Map.of(
                     "message", "File(s) uploaded successfully",
                     "count", uploaded.size(),
-                    "files", uploaded
-            ));
+                    "files", uploaded));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Could not upload the file: " + e.getMessage());
@@ -84,16 +83,20 @@ public class FileController {
     @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> downloadFile(@PathVariable Long id) {
         try {
+            if (id == null) {
+                return ResponseEntity.badRequest().body("id is required");
+            }
             User user = getCurrentUser();
             byte[] data = fileService.downloadFile(id, user);
             FileEntity fileInfo = fileService.getFile(id);
 
-            ByteArrayResource resource = new ByteArrayResource(data);
+            byte[] safeData = Objects.requireNonNull(data, "downloaded data");
+            ByteArrayResource resource = new ByteArrayResource(safeData);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileInfo.getFileName() + "\"")
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(data.length)
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_OCTET_STREAM))
+                    .contentLength(safeData.length)
                     .body(resource);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
@@ -114,7 +117,8 @@ public class FileController {
 
     @PatchMapping("/{id}/visibility")
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<?> updateVisibility(@PathVariable Long id, @RequestParam("visibility") VisibilityType visibility) {
+    public ResponseEntity<?> updateVisibility(@PathVariable Long id,
+            @RequestParam("visibility") VisibilityType visibility) {
         try {
             User user = getCurrentUser();
             FileMetadataDto dto = fileService.updateVisibility(id, visibility, user);

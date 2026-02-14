@@ -19,14 +19,17 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private String role = "USER";
 
-    // Nullable for smooth schema evolution: existing DB rows may have NULL after ddl-auto=update.
+    // Nullable for smooth schema evolution: existing DB rows may have NULL after
+    // ddl-auto=update.
     // Treat NULL as active=true in isActive().
     @Column(nullable = true)
-    private Boolean active = true;
+    private Boolean active = false;
+
+    @Column(nullable = false)
+    private String status = "PENDING";
 
     public Long getId() {
         return id;
@@ -60,11 +63,11 @@ public class User {
         this.email = email;
     }
 
-    public Role getRole() {
-        return role;
+    public String getRole() {
+        return role == null || role.isBlank() ? "ROLE_USER" : role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(String role) {
         this.role = role;
     }
 
@@ -74,5 +77,13 @@ public class User {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public String getStatus() {
+        return status == null ? "APPROVED" : status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

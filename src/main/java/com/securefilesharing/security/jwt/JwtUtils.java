@@ -2,7 +2,6 @@ package com.securefilesharing.security.jwt;
 
 import com.securefilesharing.security.services.UserDetailsImpl;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

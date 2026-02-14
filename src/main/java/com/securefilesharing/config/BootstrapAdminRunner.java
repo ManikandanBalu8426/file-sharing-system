@@ -1,6 +1,5 @@
 package com.securefilesharing.config;
 
-import com.securefilesharing.entity.Role;
 import com.securefilesharing.entity.User;
 import com.securefilesharing.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +48,8 @@ public class BootstrapAdminRunner implements ApplicationRunner {
 
         userRepository.findByUsername(username).ifPresentOrElse(existing -> {
             boolean changed = false;
-            if (existing.getRole() != Role.ROLE_ADMIN) {
-                existing.setRole(Role.ROLE_ADMIN);
+            if (!"ROLE_ADMIN".equals(existing.getRole())) {
+                existing.setRole("ROLE_ADMIN");
                 changed = true;
             }
             if (!existing.isActive()) {
@@ -65,7 +64,7 @@ public class BootstrapAdminRunner implements ApplicationRunner {
             admin.setUsername(username);
             admin.setEmail(isBlank(email) ? null : email);
             admin.setPassword(passwordEncoder.encode(password));
-            admin.setRole(Role.ROLE_ADMIN);
+            admin.setRole("ROLE_ADMIN");
             admin.setActive(true);
             userRepository.save(admin);
         });

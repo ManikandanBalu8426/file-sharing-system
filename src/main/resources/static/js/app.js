@@ -671,46 +671,390 @@ async function downloadFile(id) {
     }
 }
 
-async function loadLogs() {
-    const response = await fetch(`${API_URL}/admin/logs`, {
-        headers: authHeader()
-    });
-    if (response.status === 401 || response.status === 403) {
-        const container = document.getElementById('logsContainer');
-        if (container) {
-            container.innerHTML = '<div class="rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-red-200">Access Denied</div>';
+// ==================== AUDIT LOG FUNCTIONS ====================
+
+let auditState = {
+    currentPage: 0,
+    pageSize: 20,
+    totalPages: 0,
+    totalItems: 0,
+    filters: {
+        username: '',
+        action: '',
+        status: '',
+        fileName: '',
+        startDate: '',
+        endDate: ''
+    }
+};
+
+/**
+ * Initialize the audit page - load filters, stats, and logs
+ */
+async function initAuditPage() {
+    await loadAuditFilters();
+    await loadAuditStats();
+    await loadAuditLogs();
+}
+
+/**
+ * Load filter dropdown options from the API
+ */
+async function loadAuditFilters() {
+    try {
+        const response = await fetch(`${API_URL}/audit/filters`, {
+            headers: authHeader()
+        });
+        if (response.ok) {
+            const data = await response.json();
+            const actionSelect = document.getElementById('filterAction');
+            if (actionSelect && data.actions) {
+                actionSelect.innerHTML = '<option value="">All Actions</option>';
+                data.actions.forEach(action => {
+                    const opt = document.createElement('option');
+                    opt.value = action;
+                    opt.textContent = formatActionLabel(action);
+                    actionSelect.appendChild(opt);
+                });
+            }
         }
-        uiToast('err', 'Access denied', 'Admin/Auditor role required');
+    } catch (e) {
+        console.error('Failed to load filters:', e);
+    }
+}
+
+/**
+ * Load audit statistics
+ */
+async function loadAuditStats() {
+    try {
+        const response = await fetch(`${API_URL}/audit/stats`, {
+            headers: authHeader()
+        });
+        if (response.ok) {
+            const stats = await response.json();
+            const totalEl = document.getElementById('totalLogs');
+            const successEl = document.getElementById('successCount');
+            const failureEl = document.getElementById('failureCount');
+            if (totalEl) totalEl.textContent = stats.totalLogs || 0;
+            if (successEl) successEl.textContent = stats.successCount || 0;
+            if (failureEl) failureEl.textContent = stats.failureCount || 0;
+        }
+    } catch (e) {
+        console.error('Failed to load stats:', e);
+    }
+}
+
+/**
+ * Load audit logs with current filters and pagination
+ */
+async function loadAuditLogs() {
+    const params = new URLSearchParams();
+    params.append('page', auditState.currentPage);
+    params.append('size', auditState.pageSize);
+
+    if (auditState.filters.username) params.append('username', auditState.filters.username);
+    if (auditState.filters.action) params.append('action', auditState.filters.action);
+    if (auditState.filters.status) params.append('status', auditState.filters.status);
+    if (auditState.filters.fileName) params.append('fileName', auditState.filters.fileName);
+    if (auditState.filters.startDate) params.append('startDate', new Date(auditState.filters.startDate).toISOString());
+    if (auditState.filters.endDate) params.append('endDate', new Date(auditState.filters.endDate).toISOString());
+
+    try {
+        const response = await fetch(`${API_URL}/audit?${params.toString()}`, {
+            headers: authHeader()
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            uiToast('err', 'Access denied', 'Admin/Auditor role required');
+            return;
+        }
+
+        const data = await response.json();
+        auditState.totalPages = data.totalPages || 1;
+        auditState.totalItems = data.totalItems || 0;
+
+        renderAuditTable(data.logs || []);
+        updatePagination();
+    } catch (e) {
+        console.error('Failed to load audit logs:', e);
+        uiToast('err', 'Load failed', 'Could not fetch audit logs');
+    }
+}
+
+/**
+ * Render the audit logs table
+ */
+function renderAuditTable(logs) {
+    const list = document.getElementById('logList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (logs.length === 0) {
+        const row = document.createElement('tr');
+        row.className = 'border-b border-white/10';
+        row.innerHTML = `<td class="px-4 py-6 text-slate-300 text-center" colspan="7">No audit logs found.</td>`;
+        list.appendChild(row);
         return;
     }
-    const logs = await response.json();
-    const list = document.getElementById('logList');
-    list.innerHTML = '';
+
     logs.forEach(log => {
         const row = document.createElement('tr');
         row.className = 'border-b border-white/10 hover:bg-white/5 transition';
         row.innerHTML = `
-            <td class="px-4 py-3 text-slate-200">${log.id}</td>
-            <td class="px-4 py-3 text-slate-300">${log.user ? log.user.username : 'Unknown'}</td>
-            <td class="px-4 py-3 text-slate-200">${log.action}</td>
-            <td class="px-4 py-3 text-slate-300">${log.details || ''}</td>
-            <td class="px-4 py-3 text-slate-400 text-sm">${log.timestamp}</td>
+            <td class="px-4 py-3 text-slate-400 font-mono text-xs">${log.id}</td>
+            <td class="px-4 py-3 text-slate-200 font-medium">${escapeHtml(log.username || 'SYSTEM')}</td>
+            <td class="px-4 py-3">${renderActionBadge(log.action)}</td>
+            <td class="px-4 py-3">
+                <div class="file-name text-slate-300" title="${escapeHtml(log.fileName || '')}">${escapeHtml(log.fileName || '-')}</div>
+            </td>
+            <td class="px-4 py-3 text-slate-400 font-mono text-xs">${log.resourceId || '-'}</td>
+            <td class="px-4 py-3">${renderStatusBadge(log.status)}</td>
+            <td class="px-4 py-3 text-slate-400 text-sm">${formatTimestamp(log.timestamp)}</td>
         `;
         list.appendChild(row);
     });
 }
 
+/**
+ * Render action type as a colored badge
+ */
+function renderActionBadge(action) {
+    if (!action) return '<span class="badge badge-default">UNKNOWN</span>';
+
+    const badgeClass = getActionBadgeClass(action);
+    const label = formatActionLabel(action);
+    return `<span class="badge ${badgeClass}">${label}</span>`;
+}
+
+/**
+ * Get CSS class for action badge
+ */
+function getActionBadgeClass(action) {
+    const map = {
+        'LOGIN_SUCCESS': 'badge-login-success',
+        'LOGIN_FAILED': 'badge-login-failed',
+        'UPLOAD': 'badge-upload',
+        'DOWNLOAD': 'badge-download',
+        'DELETE': 'badge-delete',
+        'SHARE': 'badge-share',
+        'ROLE_UPDATE': 'badge-role-update',
+        'PERMISSION_UPDATE': 'badge-permission-update',
+        'VISIBILITY_UPDATE': 'badge-visibility-update',
+        'ACCESS_REQUEST': 'badge-access-request',
+        'ACCESS_GRANT': 'badge-access-grant',
+        'ACCESS_DENY': 'badge-access-deny'
+    };
+    return map[action] || 'badge-default';
+}
+
+/**
+ * Format action type for display
+ */
+function formatActionLabel(action) {
+    if (!action) return 'Unknown';
+    return action.replace(/_/g, ' ');
+}
+
+/**
+ * Render status as a colored badge
+ */
+function renderStatusBadge(status) {
+    if (!status) return '<span class="badge badge-default">-</span>';
+    const badgeClass = status === 'SUCCESS' ? 'status-success' : 'status-failure';
+    return `<span class="badge ${badgeClass}">${status}</span>`;
+}
+
+/**
+ * Format timestamp to human-readable format
+ * Converts 2026-02-13T12:38:49.494338 to "13 Feb 2026, 12:38 PM"
+ */
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '-';
+    try {
+        const date = new Date(timestamp);
+        const day = date.getDate();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+
+        let hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+
+        return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
+    } catch (e) {
+        return timestamp;
+    }
+}
+
+/**
+ * Update pagination controls
+ */
+function updatePagination() {
+    const currentPageEl = document.getElementById('currentPage');
+    const totalPagesEl = document.getElementById('totalPages');
+    const totalRecordsEl = document.getElementById('totalRecords');
+    const showingFromEl = document.getElementById('showingFrom');
+    const showingToEl = document.getElementById('showingTo');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (currentPageEl) currentPageEl.textContent = auditState.currentPage + 1;
+    if (totalPagesEl) totalPagesEl.textContent = auditState.totalPages || 1;
+    if (totalRecordsEl) totalRecordsEl.textContent = auditState.totalItems;
+
+    const from = auditState.totalItems === 0 ? 0 : (auditState.currentPage * auditState.pageSize) + 1;
+    const to = Math.min((auditState.currentPage + 1) * auditState.pageSize, auditState.totalItems);
+    if (showingFromEl) showingFromEl.textContent = from;
+    if (showingToEl) showingToEl.textContent = to;
+
+    if (prevBtn) prevBtn.disabled = auditState.currentPage === 0;
+    if (nextBtn) nextBtn.disabled = auditState.currentPage >= auditState.totalPages - 1;
+}
+
+/**
+ * Go to previous page
+ */
+function prevPage() {
+    if (auditState.currentPage > 0) {
+        auditState.currentPage--;
+        loadAuditLogs();
+    }
+}
+
+/**
+ * Go to next page
+ */
+function nextPage() {
+    if (auditState.currentPage < auditState.totalPages - 1) {
+        auditState.currentPage++;
+        loadAuditLogs();
+    }
+}
+
+/**
+ * Apply filters from the filter inputs
+ */
+function applyFilters() {
+    auditState.filters.username = document.getElementById('filterUsername')?.value || '';
+    auditState.filters.action = document.getElementById('filterAction')?.value || '';
+    auditState.filters.status = document.getElementById('filterStatus')?.value || '';
+    auditState.filters.fileName = document.getElementById('filterFileName')?.value || '';
+    auditState.filters.startDate = document.getElementById('filterStartDate')?.value || '';
+    auditState.filters.endDate = document.getElementById('filterEndDate')?.value || '';
+    auditState.currentPage = 0; // Reset to first page
+    loadAuditLogs();
+}
+
+/**
+ * Clear all filters
+ */
+function clearFilters() {
+    document.getElementById('filterUsername').value = '';
+    document.getElementById('filterAction').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterFileName').value = '';
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    auditState.filters = {
+        username: '',
+        action: '',
+        status: '',
+        fileName: '',
+        startDate: '',
+        endDate: ''
+    };
+    auditState.currentPage = 0;
+    loadAuditLogs();
+}
+
+/**
+ * Export audit logs as CSV
+ */
+async function exportAuditLogs() {
+    const params = new URLSearchParams();
+    if (auditState.filters.username) params.append('username', auditState.filters.username);
+    if (auditState.filters.action) params.append('action', auditState.filters.action);
+    if (auditState.filters.status) params.append('status', auditState.filters.status);
+    if (auditState.filters.fileName) params.append('fileName', auditState.filters.fileName);
+    if (auditState.filters.startDate) params.append('startDate', new Date(auditState.filters.startDate).toISOString());
+    if (auditState.filters.endDate) params.append('endDate', new Date(auditState.filters.endDate).toISOString());
+
+    try {
+        const response = await fetch(`${API_URL}/audit/export?${params.toString()}`, {
+            headers: authHeader()
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            uiToast('ok', 'Export complete', 'CSV file downloaded');
+        } else {
+            uiToast('err', 'Export failed', 'Could not download CSV');
+        }
+    } catch (e) {
+        console.error('Export failed:', e);
+        uiToast('err', 'Export failed', e.message);
+    }
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Legacy function for backward compatibility
+async function loadLogs() {
+    await loadAuditLogs();
+}
+
 function checkAuth() {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const raw = localStorage.getItem('user');
+    if (!raw) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    let user;
+    try {
+        user = JSON.parse(raw);
+    } catch (e) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.href = 'login.html';
+        return;
+    }
+
     if (!user) {
         window.location.href = 'login.html';
-    } else {
-        document.getElementById('usernameDisplay').innerText = user.username;
-        document.getElementById('roleDisplay').innerText = user.role;
+        return;
+    }
 
-        // Show Admin Link
-        if (user.role === 'ROLE_ADMIN' || user.role === 'ROLE_AUDITOR') {
-            document.getElementById('adminLink').classList.remove('hidden');
-        }
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    if (usernameDisplay && user.username) {
+        usernameDisplay.innerText = user.username;
+    }
+    const roleDisplay = document.getElementById('roleDisplay');
+    if (roleDisplay && user.role) {
+        roleDisplay.innerText = user.role;
+    }
+    const adminLink = document.getElementById('adminLink');
+    if (adminLink && (user.role === 'ROLE_ADMIN' || user.role === 'ROLE_AUDITOR')) {
+        adminLink.classList.remove('hidden');
     }
 }

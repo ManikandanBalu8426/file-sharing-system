@@ -1,0 +1,390 @@
+================================================================================
+                    SECURE FILE SHARING SYSTEM - UI DESCRIPTION
+================================================================================
+
+This document describes the user interface (UI) for each module of the Secure
+File Sharing System based on the current HTML/CSS implementation.
+
+================================================================================
+                              GENERAL STYLING
+================================================================================
+
+Theme & Colors:
+- Dark theme with slate/dark blue background (bg-slate-950)
+- Grid pattern overlay on background
+- Glass-morphism card effects (backdrop blur, semi-transparent backgrounds)
+- Gradient accent colors: Blue (#3b82f6) to Emerald (#34d399)
+- Text colors: White/slate-100 for primary, slate-300/400 for secondary
+
+Common Elements:
+- Rounded corners (rounded-xl, rounded-2xl, rounded-3xl)
+- Lifted card effects with subtle shadows
+- Consistent spacing using Tailwind-like utility classes
+- Responsive design (mobile-first with sm/md/lg breakpoints)
+
+
+================================================================================
+                          1. LANDING PAGE (index.html)
+================================================================================
+
+Purpose: Public-facing home page to introduce the system and attract users.
+
+HEADER (Fixed Navigation):
+- Logo: Gradient square with "S" letter (blue-to-emerald gradient)
+- Brand name: "Secure File Sharing System"
+- Navigation links: Features, How it works, Security, Contact
+- Action buttons: "Sign in" (outlined) and "Create account" (gradient filled)
+
+HERO SECTION:
+- Background: Blurred gradient orbs (blue, emerald, indigo)
+- Tagline badge: "Encrypted sharing, built for teams"
+- Main heading: "Secure File Sharing System"
+- Subheading: "Encrypted. Role-Based. Reliable."
+- Call-to-action buttons: "Get Started" and "View Features"
+- Feature pills (4 items in a row):
+  * AES - Encryption at rest
+  * JWT - Secure sessions
+  * RBAC - Role-based access
+  * Logs - Auditable actions
+- Live preview card: Mockup showing file upload interface with encrypted status
+
+FEATURES SECTION:
+- Title: "Features built for trust"
+- 4 feature cards in a grid:
+  1. End-to-End Encryption (lock icon, blue accent)
+  2. Role-Based Access Control (shield icon, emerald accent)
+  3. Secure Upload & Download (upload icon, indigo accent)
+  4. Audit Logs (scroll icon, amber accent)
+- Each card has: Icon, title, description
+
+HOW IT WORKS SECTION:
+- Title: "How it works"
+- 4-step numbered list with vertical progress indicators:
+  1. Create your account
+  2. Upload a file
+  3. Download with authorization
+  4. Audit everything
+- Side tip card: "Fast to use. Hard to misuse." with Sign in/Create account buttons
+
+SECURITY SECTION:
+- Title: "Security, made visible"
+- Description about security features
+- Two info cards: "Least-privilege access" and "Traceable actions"
+- Animated SVG lock illustration with gradient styling
+
+FOOTER:
+- Brand logo and tagline
+- Navigation links
+- Copyright notice
+
+
+================================================================================
+                          2. LOGIN PAGE (login.html)
+================================================================================
+
+Purpose: Allow existing users to sign in to their accounts.
+
+LAYOUT:
+- Centered card on full viewport height
+- "Back to home" link at top-left
+
+LOGIN CARD:
+- Header:
+  * Title: "Welcome back"
+  * Subtitle: "Sign in to upload, download, and manage secure files."
+  * Lock icon (🔐) on the right
+
+- Form fields:
+  1. Username
+     - Label: "Username"
+     - Input: Text field with placeholder "Enter your username"
+  
+  2. Password
+     - Label: "Password"
+     - Input: Password field with placeholder "••••••••"
+
+- OTP Section (hidden by default, shown after initial login):
+  * OTP input field (6-digit code)
+  * Help text: "We've emailed you an OTP. Enter it to finish signing in."
+  * "Resend OTP" button
+  * "Change details" button
+
+- Actions:
+  * "Sign In" button (full width, primary style)
+  * Link to register page: "Don't have an account? Register"
+  * Error message display area
+
+- Footer tip about local CSS fallback
+
+
+================================================================================
+                          3. REGISTER PAGE (register.html)
+================================================================================
+
+Purpose: Allow new users to create an account.
+
+LAYOUT:
+- Centered card on full viewport height
+- "Back to home" link at top-left
+
+REGISTRATION CARD:
+- Header:
+  * Title: "Create your account"
+  * Subtitle: "Encrypted sharing with role-based permissions and audit logs."
+  * Sparkle icon (✨) on the right
+
+- Form fields:
+  1. Username
+     - Label: "Username"
+     - Input: Text field with placeholder "Choose a username"
+  
+  2. Email
+     - Label: "Email"
+     - Input: Email field with placeholder "you@example.com"
+     - Help text: "We'll send an OTP to verify this email."
+  
+  3. Password
+     - Label: "Password"
+     - Input: Password field with placeholder "Create a password"
+     - Help text: "Use a strong password for better protection."
+  
+  4. Role
+     - Label: "Role"
+     - Dropdown select with options:
+       * User (default)
+       * Admin
+       * Auditor
+
+- OTP Section (hidden by default, shown after form submission):
+  * OTP input field (6-digit code)
+  * Help text: "Enter the code sent to your email to complete registration."
+  * "Resend OTP" button
+  * "Change details" button
+
+- Actions:
+  * "Create Account" button (full width, primary style)
+  * Link to login page: "Already have an account? Login"
+  * Error message display area
+
+
+================================================================================
+                          4. DASHBOARD PAGE (dashboard.html)
+================================================================================
+
+Purpose: Main user dashboard after login with file management capabilities.
+
+HEADER (Sticky):
+- Logo and brand name "SecureShare"
+- User info (right side):
+  * Username display
+  * Role display
+  * "Audit Logs" link (visible for admin/auditor roles)
+  * "Logout" button
+
+PAGE TITLE SECTION:
+- Title: "Your Secure Vault"
+- Subtitle: "AES-encrypted storage, JWT authentication, and strict role-based
+  access checks. No folders—only permissions."
+- Action buttons: "Upload File" and "View Files"
+
+SECURITY BANNER:
+- Shield icon (🛡️)
+- Title: "Organization-grade controls"
+- Description about role + approval-based file access
+- Security pill: "JWT + Role Checks" with green indicator dot
+
+FILE CATEGORY OVERVIEW:
+- Title: "File Category Overview"
+- Subtitle: "Click a category to filter what you can access."
+- "Clear filter" button
+- 5 category cards (vault-style) in a grid:
+  1. Images (🖼️) - shows file count
+  2. Documents (📄) - shows file count
+  3. Videos (🎬) - shows file count
+  4. Audio (🎧) - shows file count
+  5. Archives (🗜️) - shows file count
+- Each card has: Icon, lock indicator, name, file count
+
+UPLOAD SECTION:
+- Title: "Upload a file"
+- Subtitle: "Drag & drop, or choose a file. Upload progress appears below."
+- Security indicator: "🔒 Role-based + JWT-protected upload"
+
+- Dropzone area:
+  * Text: "Drop file here" / "or select using the button"
+  * "Choose files" button (opens file picker)
+  
+- Upload metadata fields:
+  * Visibility dropdown:
+    - PRIVATE (owner only)
+    - PROTECTED (approval required)
+    - PUBLIC (org-wide)
+  * Purpose input (optional)
+  * Category label input (optional)
+
+- Upload controls:
+  * "Upload now" button
+  * Progress bar with percentage display
+  * Selected files display
+
+FILE LIST SECTION:
+- Title: "Accessible Files"
+- Subtitle: "Only authorized files are displayed. Download is enabled only
+  when permitted."
+- "Refresh" button
+
+- Toolbar:
+  * Ownership filter (segmented buttons): All | My files | Shared
+  * Search input: "Search by name, owner, category…"
+  * Active filter hint display
+
+- File table with columns:
+  1. File (name)
+  2. Owner / Uploaded by
+  3. Upload date & time
+  4. Access level
+  5. Visibility
+  6. Action (download/request buttons)
+
+- Empty state message when no files match filters
+
+
+================================================================================
+                          5. FILES PAGE (files.html)
+================================================================================
+
+Purpose: Dedicated file listing page with filtering by type.
+
+HEADER (Sticky):
+- Same as dashboard header
+- Logo links back to dashboard
+
+PAGE TITLE SECTION:
+- Breadcrumb: "Dashboard / Files"
+- Title: "Accessible Files"
+- Subtitle: "Files are listed strictly by role and permissions (not folder paths)."
+- Action buttons: "Back to dashboard" and "Clear type"
+
+SECURITY BANNER:
+- Lock icon (🔒)
+- Title: "Access-controlled listing"
+- Description: "Unauthorized files are not visible. Download actions are
+  disabled when permission is missing."
+- Security pill: "JWT + Role Checks"
+
+FILE LIST SECTION:
+- Same structure as dashboard file list
+- Title: "Accessible Files"
+- Subtitle: "Filter by ownership and search across accessible metadata."
+- "Refresh" button
+
+- Toolbar:
+  * Ownership filter: All | My files | Shared
+  * Search input
+
+- File table with same columns as dashboard
+
+- Empty state message
+
+
+================================================================================
+                          6. ADMIN/AUDIT PAGE (admin.html)
+================================================================================
+
+Purpose: View audit logs for monitoring and compliance (admin/auditor access).
+
+HEADER (Sticky):
+- Logo and brand name "SecureShare" (links to index)
+- User info display
+- "Dashboard" link button
+- "Logout" button
+
+PAGE TITLE SECTION:
+- Title: "Audit Logs"
+- Subtitle: "Review system activity and audit trail for monitoring and compliance."
+- "Refresh" button
+
+AUDIT LOGS TABLE:
+- Glass card container
+- Table with columns:
+  1. ID (log entry ID)
+  2. User (who performed the action)
+  3. Action (type of action: LOGIN, UPLOAD, DOWNLOAD, etc.)
+  4. Details (description of what happened)
+  5. Timestamp (when it occurred)
+
+- Hint text area below table
+
+
+================================================================================
+                          COMPONENT PATTERNS
+================================================================================
+
+BUTTONS:
+- Primary (btn-primary): Gradient background, dark text, rounded corners
+- Ghost (btn-ghost): Transparent with border, light text
+- Loading state: Spinner animation with "Loading…" text
+
+INPUTS:
+- Rounded corners (rounded-xl)
+- Dark background with border
+- Placeholder text in slate-500
+- Focus state with outline
+
+CARDS:
+- Glass effect (card-glass): Semi-transparent with blur
+- Lift effect on hover
+- Rounded corners (rounded-2xl or rounded-3xl)
+
+TABLES:
+- Border styling with white/10 opacity
+- Header row with bg-white/5
+- Text colors: slate-300 for headers, slate-200 for content
+
+BADGES/PILLS:
+- Small rounded containers for status indicators
+- Color-coded: emerald for success, amber for warning, etc.
+
+TOAST NOTIFICATIONS:
+- Appear in corner of screen
+- Types: success (ok), error (err), info
+- Auto-dismiss after timeout
+
+
+================================================================================
+                              RESPONSIVE DESIGN
+================================================================================
+
+Mobile (< 640px):
+- Single column layouts
+- Hamburger menu (hidden nav links)
+- Stacked form fields
+- Full-width buttons
+- Hidden user info in header
+
+Tablet (640px - 1024px):
+- 2-column grids
+- Visible navigation
+- Side-by-side form layouts
+
+Desktop (> 1024px):
+- Full multi-column grids (up to 4 columns)
+- Expanded navigation
+- Wide content containers (max-w-6xl)
+
+
+================================================================================
+                              ACCESSIBILITY
+================================================================================
+
+- Skip to content link
+- ARIA labels on interactive elements
+- Role attributes on tab components
+- Semantic HTML structure (header, main, section, etc.)
+- Keyboard navigation support
+- Focus indicators on interactive elements
+
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================

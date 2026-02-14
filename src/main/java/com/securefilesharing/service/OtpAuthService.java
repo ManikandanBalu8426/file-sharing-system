@@ -8,13 +8,14 @@ import com.securefilesharing.dto.SigninOtpRequest;
 import com.securefilesharing.dto.SignupOtpRequest;
 import com.securefilesharing.entity.OtpPurpose;
 import com.securefilesharing.entity.OtpToken;
-import com.securefilesharing.entity.Role;
 import com.securefilesharing.entity.User;
 import com.securefilesharing.repository.OtpTokenRepository;
 import com.securefilesharing.repository.UserRepository;
 import com.securefilesharing.security.jwt.JwtUtils;
 import com.securefilesharing.security.services.UserDetailsImpl;
 import com.securefilesharing.security.services.UserDetailsServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,9 +23,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class OtpAuthService {
@@ -38,6 +42,9 @@ public class OtpAuthService {
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
 
+    @Autowired
+    private AuditService auditService;
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.otp.ttlSeconds:600}")
@@ -47,13 +54,13 @@ public class OtpAuthService {
     private int otpMaxAttempts;
 
     public OtpAuthService(AuthenticationManager authenticationManager,
-                          UserDetailsServiceImpl userDetailsService,
-                          UserRepository userRepository,
-                          OtpTokenRepository otpTokenRepository,
-                          PasswordEncoder passwordEncoder,
-                          JwtUtils jwtUtils,
-                          EmailService emailService,
-                          ObjectMapper objectMapper) {
+            UserDetailsServiceImpl userDetailsService,
+            UserRepository userRepository,
+            OtpTokenRepository otpTokenRepository,
+            PasswordEncoder passwordEncoder,
+            JwtUtils jwtUtils,
+            EmailService emailService,
+            ObjectMapper objectMapper) {
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
         this.userRepository = userRepository;
@@ -82,15 +89,15 @@ public class OtpAuthService {
             throw new IllegalArgumentException("Email is already in use");
         }
 
-        // Security: role assignment is admin-controlled. New signups are always ROLE_USER.
-        Role role = Role.ROLE_USER;
+        // Security: role assignment is admin-controlled. New signups are always USER.
+        String role = "USER";
         String passwordHash = passwordEncoder.encode(request.getPassword());
 
         SignupPayload payload = new SignupPayload();
         payload.username = request.getUsername();
         payload.email = request.getEmail();
         payload.passwordHash = passwordHash;
-        payload.role = role.name();
+        payload.role = role;
 
         return createAndSendOtp(request.getEmail(), OtpPurpose.SIGNUP, payload, "Sign up");
     }
@@ -110,8 +117,9 @@ public class OtpAuthService {
         user.setUsername(payload.username);
         user.setEmail(payload.email);
         user.setPassword(payload.passwordHash);
-        user.setRole(Role.valueOf(payload.role));
-        user.setActive(true);
+        user.setRole(payload.role);
+        user.setActive(false);
+        user.setStatus("PENDING");
 
         userRepository.save(user);
     }
@@ -129,7 +137,12 @@ public class OtpAuthService {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (userDetails.getId() == null) {
+            throw new IllegalArgumentException("User id missing");
+        }
+        long userId = userDetails.getId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new IllegalArgumentException("No email is set for this account. Cannot send OTP.");
@@ -150,9 +163,23 @@ public class OtpAuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String jwt = jwtUtils.generateJwtToken(authentication);
-        String role = userDetails.getAuthorities().stream().findFirst().get().getAuthority();
 
-        return new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role);
+        String role = userDetails.getAuthorities().stream()
+                .map(a -> a.getAuthority())
+                .filter(a -> a != null && a.startsWith("ROLE_"))
+                .findFirst()
+                .orElse("ROLE_USER");
+        List<String> permissions = userDetails.getAuthorities().stream()
+                .map(a -> a.getAuthority())
+                .filter(a -> a != null && a.startsWith("PERM_"))
+                .sorted()
+                .toList();
+
+        // Log successful login
+        logAuthEvent(userDetails.getId(), payload.username, role, AuditService.ACTION_LOGIN_SUCCESS,
+                AuditService.STATUS_SUCCESS, null);
+
+        return new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), role, permissions);
     }
 
     private OtpRequestResponse createAndSendOtp(String email, OtpPurpose purpose, Object payload, String purposeLabel) {
@@ -215,22 +242,6 @@ public class OtpAuthService {
         return String.valueOf(code);
     }
 
-    private Role parseRole(String inputRole) {
-        Role role = Role.ROLE_USER;
-        if (inputRole != null) {
-            try {
-                String reqRole = inputRole.toUpperCase();
-                if (!reqRole.startsWith("ROLE_")) {
-                    reqRole = "ROLE_" + reqRole;
-                }
-                role = Role.valueOf(reqRole);
-            } catch (IllegalArgumentException e) {
-                // default
-            }
-        }
-        return role;
-    }
-
     private String writePayload(Object payload) {
         try {
             return objectMapper.writeValueAsString(payload);
@@ -256,5 +267,48 @@ public class OtpAuthService {
 
     private static class SigninPayload {
         public String username;
+    }
+
+    /**
+     * Log authentication events for audit trail.
+     */
+    private void logAuthEvent(Long userId, String username, String role, String action,
+            String status, String details) {
+        try {
+            HttpServletRequest request = getCurrentHttpRequest();
+            String ipAddress = extractIpAddress(request);
+            String userAgent = extractUserAgent(request);
+
+            auditService.logAuthEvent(userId, username, role, action,
+                    AuditService.RESOURCE_USER, userId != null ? userId.toString() : null,
+                    status, ipAddress, userAgent, details);
+        } catch (Exception e) {
+            // Don't fail authentication if audit logging fails
+        }
+    }
+
+    private HttpServletRequest getCurrentHttpRequest() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            return attrs != null ? attrs.getRequest() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractIpAddress(HttpServletRequest request) {
+        if (request == null)
+            return "unknown";
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    private String extractUserAgent(HttpServletRequest request) {
+        if (request == null)
+            return "unknown";
+        return request.getHeader("User-Agent");
     }
 }

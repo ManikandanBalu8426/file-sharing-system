@@ -18,8 +18,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByActiveFalse();
 
+    long countByActiveTrue();
+
     @Modifying
     @Transactional
     @Query("update User u set u.active = true where u.active = false")
     int enableAllInactiveUsers();
+
+    long countByStatus(String status);
+
+    List<User> findByStatus(String status);
 }

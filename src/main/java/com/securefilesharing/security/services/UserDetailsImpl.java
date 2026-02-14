@@ -3,12 +3,9 @@ package com.securefilesharing.security.services;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.securefilesharing.entity.User;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 
 public class UserDetailsImpl implements UserDetails {
@@ -33,15 +30,12 @@ public class UserDetailsImpl implements UserDetails {
         this.authorities = authorities;
     }
 
-    public static UserDetailsImpl build(User user) {
-        List<GrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority(user.getRole().name()));
-
+    public static UserDetailsImpl build(User user, Collection<? extends GrantedAuthority> authorities) {
         return new UserDetailsImpl(
                 user.getId(),
                 user.getUsername(),
                 user.getPassword(),
-            user.isActive(),
+                user.isActive(),
                 authorities);
     }
 

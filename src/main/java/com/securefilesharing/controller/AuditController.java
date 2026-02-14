@@ -30,7 +30,7 @@ public class AuditController {
 
     // ADMIN + AUDITOR: filter logs by user/file/date/action
     @GetMapping("/logs")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_AUDITOR')")
+    @PreAuthorize("hasAuthority('PERM_VIEW_AUDIT_LOGS') or hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_AUDITOR') or hasAuthority('ROLE_SUPER_ADMIN')")
     public ResponseEntity<List<AuditLog>> logs(
             @RequestParam(value = "userId", required = false) Long actorUserId,
             @RequestParam(value = "fileId", required = false) Long fileId,
@@ -44,7 +44,7 @@ public class AuditController {
 
     // AUDITOR: export logs (CSV)
     @GetMapping("/logs/export")
-    @PreAuthorize("hasAuthority('ROLE_AUDITOR')")
+    @PreAuthorize("hasAuthority('PERM_REPORTS') or hasAuthority('ROLE_AUDITOR') or hasAuthority('ROLE_SUPER_ADMIN')")
     public ResponseEntity<String> export(
             @RequestParam(value = "userId", required = false) Long actorUserId,
             @RequestParam(value = "fileId", required = false) Long fileId,
@@ -61,7 +61,7 @@ public class AuditController {
             csv.append(val(l.getId())).append(',')
                     .append(val(l.getTimestamp())).append(',')
                     .append(csvEsc(l.getAction())).append(',')
-                    .append(val(l.getUser() != null ? l.getUser().getId() : null)).append(',')
+                    .append(val(l.getUserId())).append(',')
                     .append(val(l.getFileId())).append(',')
                     .append(val(l.getFileOwnerId())).append(',')
                     .append(val(l.getTargetUserId())).append(',')

@@ -17,6 +17,9 @@ import java.util.stream.Collectors;
 @Service
 public class AccessRequestService {
 
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_AUDITOR = "ROLE_AUDITOR";
+
     @Autowired
     private FileAccessRequestRepository fileAccessRequestRepository;
 
@@ -31,8 +34,11 @@ public class AccessRequestService {
 
     @Transactional
     public AccessRequestDto createRequest(Long fileId, CreateAccessRequestDto body, User requester) {
-        if (requester.getRole() != Role.ROLE_ADMIN) {
+        if (!ROLE_ADMIN.equals(requester.getRole())) {
             throw new RuntimeException("Only ADMIN can request access");
+        }
+        if (fileId == null) {
+            throw new RuntimeException("fileId is required");
         }
         if (body == null || body.getAccessType() == null) {
             throw new RuntimeException("Access type is required");
@@ -60,15 +66,14 @@ public class AccessRequestService {
         req.setCreatedAt(LocalDateTime.now());
 
         FileAccessRequest saved = fileAccessRequestRepository.save(req);
-        auditService.logAction(requester, "ACCESS_REQUEST",
-            "Requested " + saved.getAccessType() + " for fileId=" + fileId,
-            fileId, file.getOwner() != null ? file.getOwner().getId() : null, null);
+        auditService.logSuccess(AuditService.ACTION_ACCESS_REQUEST, AuditService.RESOURCE_ACCESS_REQUEST, saved.getId(),
+            file.getFileName(), "Requested " + saved.getAccessType() + " access for file: " + file.getFileName());
         return toDto(saved);
     }
 
     @Transactional(readOnly = true)
     public List<AccessRequestDto> getInbox(User owner) {
-        if (owner.getRole() == Role.ROLE_AUDITOR) {
+        if (ROLE_AUDITOR.equals(owner.getRole())) {
             return List.of();
         }
         return fileAccessRequestRepository
@@ -80,7 +85,7 @@ public class AccessRequestService {
 
     @Transactional(readOnly = true)
     public List<AccessRequestDto> getMyRequests(User requester) {
-        if (requester.getRole() == Role.ROLE_AUDITOR) {
+        if (ROLE_AUDITOR.equals(requester.getRole())) {
             return List.of();
         }
         return fileAccessRequestRepository
@@ -92,10 +97,13 @@ public class AccessRequestService {
 
     @Transactional
     public AccessRequestDto approve(Long requestId, User approver) {
+        if (requestId == null) {
+            throw new RuntimeException("requestId is required");
+        }
         FileAccessRequest req = fileAccessRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        if (approver.getRole() == Role.ROLE_AUDITOR) {
+        if (ROLE_AUDITOR.equals(approver.getRole())) {
             throw new RuntimeException("Auditor cannot approve access");
         }
         if (req.getFile() == null || req.getFile().getOwner() == null || req.getFile().getOwner().getId() == null) {
@@ -113,20 +121,21 @@ public class AccessRequestService {
         req.setExpiresAt(LocalDateTime.now().plusSeconds(Math.max(60, protectedAccessTtlSeconds)));
 
         FileAccessRequest saved = fileAccessRequestRepository.save(req);
-        auditService.logAction(approver, "ACCESS_APPROVED",
-            "Approved requestId=" + saved.getId() + " for fileId=" + saved.getFile().getId(),
-            saved.getFile() != null ? saved.getFile().getId() : null,
-            saved.getFile() != null && saved.getFile().getOwner() != null ? saved.getFile().getOwner().getId() : null,
-            saved.getRequester() != null ? saved.getRequester().getId() : null);
+        String fileName = saved.getFile() != null ? saved.getFile().getFileName() : null;
+        auditService.logSuccess(AuditService.ACTION_ACCESS_GRANT, AuditService.RESOURCE_ACCESS_REQUEST, saved.getId(),
+            fileName, "Approved access request for file: " + fileName);
         return toDto(saved);
     }
 
     @Transactional
     public AccessRequestDto reject(Long requestId, User approver) {
+        if (requestId == null) {
+            throw new RuntimeException("requestId is required");
+        }
         FileAccessRequest req = fileAccessRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        if (approver.getRole() == Role.ROLE_AUDITOR) {
+        if (ROLE_AUDITOR.equals(approver.getRole())) {
             throw new RuntimeException("Auditor cannot reject access");
         }
         if (req.getFile() == null || req.getFile().getOwner() == null || req.getFile().getOwner().getId() == null) {
@@ -144,11 +153,9 @@ public class AccessRequestService {
         req.setExpiresAt(null);
 
         FileAccessRequest saved = fileAccessRequestRepository.save(req);
-        auditService.logAction(approver, "ACCESS_REJECTED",
-            "Rejected requestId=" + saved.getId() + " for fileId=" + saved.getFile().getId(),
-            saved.getFile() != null ? saved.getFile().getId() : null,
-            saved.getFile() != null && saved.getFile().getOwner() != null ? saved.getFile().getOwner().getId() : null,
-            saved.getRequester() != null ? saved.getRequester().getId() : null);
+        String fileName = saved.getFile() != null ? saved.getFile().getFileName() : null;
+        auditService.logSuccess(AuditService.ACTION_ACCESS_DENY, AuditService.RESOURCE_ACCESS_REQUEST, saved.getId(),
+            fileName, "Rejected access request for file: " + fileName);
         return toDto(saved);
     }
 
